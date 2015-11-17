@@ -49,7 +49,7 @@ public:
                     statement_type eType = st_repeatable_query);
     void define_and_bind();
     void undefine_and_bind();
-    int execute(int iFetchSize, mn_odbc_error_info& err_info);
+    int execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize = -1);
     long long get_affected_rows();
     int fetch(mn_odbc_error_info& err_info);
     bool describe(mn_odbc_error_info& err_info);
@@ -75,7 +75,7 @@ public:
 protected:
     std::vector<details::into_type_base *> intos_;
     std::vector<details::use_type_base *> uses_;
-    std::vector<indicator *> indicators_;
+    std::vector<SQLLEN *> indicators_;
 
 private:
 
@@ -97,7 +97,7 @@ private:
     void into_row()
     {
         T * t = new T();
-        indicator * ind = new indicator(i_ok);
+        SQLLEN * ind = new SQLLEN(1);
         row_->add_holder(t, ind);
         exchange_for_row(into(*t, *ind));
     }
@@ -112,7 +112,6 @@ private:
     void pre_fetch();
     void pre_use();
     void post_fetch(bool gotData, bool calledFromFetch);
-    void post_use(bool gotData);
     bool resize_intos(std::size_t upperBound = 0);
     void truncate_intos();
 
@@ -170,9 +169,9 @@ public:
 
     void define_and_bind() { impl_->define_and_bind(); }
     void undefine_and_bind()  { impl_->undefine_and_bind(); }
-    int execute(int iFetchSize, mn_odbc_error_info& err_info)
+    int execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize = -1)
     {
-        resultSetSize_ = impl_->execute(iFetchSize, err_info);
+        resultSetSize_ = impl_->execute(iFetchSize, err_info, iIntoSize);
         gotData_ = resultSetSize_ != 0; 
         return resultSetSize_;
     }
@@ -253,23 +252,8 @@ template <>
 class into_type<statement> : public standard_into_type
 {
 public:
-    into_type(statement & s) : standard_into_type(&s, x_statement) {}
-    into_type(statement & s, indicator & ind)
-        : standard_into_type(&s, x_statement, ind) {}
-};
-
-template <>
-class use_type<statement> : public standard_use_type
-{
-public:
-    use_type(statement & s, std::string const & name = std::string())
-        : standard_use_type(&s, x_statement, false, name) {}
-    use_type(statement & s, indicator & ind,
-        std::string const & name = std::string())
-        : standard_use_type(&s, x_statement, ind, false, name) {}
-
-    // Note: there is no const version of use for statement,
-    // because most likely it would not make much sense anyway.
+    into_type(statement & s, SQLLEN & ind)
+        : standard_into_type(&s, x_statement, &ind) {}
 };
 
 } // namespace details

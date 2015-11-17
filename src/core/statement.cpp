@@ -93,51 +93,12 @@ void statement_impl::bind(values & values)
             // - either named and actually referenced in the statement,
             // - or positional
 
-            std::string const& useName = (*it)->get_name();
-            if (useName.empty())
-            {
-                // positional use element
+            // positional use element
 
-                int position = static_cast<int>(uses_.size());
-                (*it)->bind(*this, position);
-                uses_.push_back(*it);
-                indicators_.push_back(values.indicators_[cnt]);
-            }
-            else
-            {
-                // named use element - check if it is used
-                std::string const placeholder = ":" + useName;
-
-                std::size_t pos = query_.find(placeholder);
-                while (pos != std::string::npos)
-                {
-                    // Retrieve next char after placeholder
-                    // make sure we do not go out of range on the string
-                    const char nextChar = (pos + placeholder.size()) < query_.size() ?
-                                          query_[pos + placeholder.size()] : '\0';
-                    
-                    if (std::isalnum(nextChar))
-                    {
-                        // We got a partial match only, 
-                        // keep looking for the placeholder
-                        pos = query_.find(placeholder, pos + placeholder.size());
-                    }
-                    else
-                    {
-                        int position = static_cast<int>(uses_.size());
-                        (*it)->bind(*this, position);
-                        uses_.push_back(*it);
-                        indicators_.push_back(values.indicators_[cnt]);
-                        // Ok we found it, done
-                        break;
-                    }
-                }
-                // In case we couldn't find the placeholder
-                if (pos == std::string::npos)
-                {
-                    values.add_unused(*it, values.indicators_[cnt]);
-                }
-            }
+            int position = static_cast<int>(uses_.size());
+            (*it)->bind(*this, position);
+            uses_.push_back(*it);
+            indicators_.push_back(values.indicators_[cnt]);
 
             cnt++;
         }
@@ -311,7 +272,7 @@ void statement_impl::undefine_and_bind()
     }
 }
 
-int statement_impl::execute(int iFetchSize, mn_odbc_error_info& err_info)
+int statement_impl::execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize)
 {
     initialFetchSize_ = intos_size();
 
@@ -374,7 +335,19 @@ int statement_impl::execute(int iFetchSize, mn_odbc_error_info& err_info)
         }
     }
 
-    int recordsRead = backEnd_->execute(num, err_info);
+    if (iIntoSize == -1)
+    {
+        if (row_ == NULL)
+        {
+            iIntoSize = intos_.size();
+        }
+        else
+        {
+            iIntoSize = row_->size();
+        }
+    }
+
+    int recordsRead = backEnd_->execute(num, err_info, iIntoSize);
 
     bool gotData = recordsRead != 0;
 
@@ -409,9 +382,7 @@ int statement_impl::execute(int iFetchSize, mn_odbc_error_info& err_info)
     {
         post_fetch(gotData, false);
     }
-    
-    post_use(gotData);
-
+   
     session_.set_got_data(gotData);
     return recordsRead;
 }
@@ -536,39 +507,8 @@ std::size_t statement_impl::uses_size()
     }
     else
     {
-        std::size_t usesSize = uses_[0]->size();
-        if (usesSize == 0)
-        {
-            // this can happen only for vectors
-            throw soci_error("Vectors of size 0 are not allowed.");
-        }
-        return usesSize;
+        return (*uses_.begin())->size();
     }
-    //std::size_t usesSize = 0;
-    //std::size_t const usize = uses_.size();
-    //for (std::size_t i = 0; i != usize; ++i)
-    //{
-    //    if (i==0)
-    //    {
-    //        usesSize = uses_[i]->size();
-    //        if (usesSize == 0)
-    //        {
-    //             // this can happen only for vectors
-    //             throw soci_error("Vectors of size 0 are not allowed.");
-    //        }
-    //    }
-    //    else if (usesSize != uses_[i]->size())
-    //    {
-    //        std::ostringstream msg;
-    //        msg << "Bind variable size mismatch (use["
-    //            << static_cast<unsigned long>(i) << "] has size "
-    //            << static_cast<unsigned long>(uses_[i]->size())
-    //            << ", use[0] has size "
-    //            << static_cast<unsigned long>(usesSize);
-    //        throw soci_error(msg.str());
-    //    }
-    //}
-    //return usesSize;
 }
 
 bool statement_impl::resize_intos(std::size_t upperBound)
@@ -647,15 +587,6 @@ void statement_impl::post_fetch(bool gotData, bool calledFromFetch)
     }
 }
 
-void statement_impl::post_use(bool gotData)
-{
-    // iterate in reverse order here in case the first item
-    // is an UseType<Values> (since it depends on the other UseTypes)
-    for (std::size_t i = uses_.size(); i != 0; --i)
-    {
-        uses_[i-1]->post_use(gotData);
-    }
-}
 
 namespace soci
 {
@@ -719,23 +650,23 @@ bool statement_impl::describe(mn_odbc_error_info& err_info)
     int const numcols = backEnd_->prepare_for_describe();
     for (int i = 1; i <= numcols; ++i)
     {
-        column_properties props;
-        if (!backEnd_->describe_column(i, props, err_info))
+        column_properties* props = new column_properties();
+        if (!backEnd_->describe_column(i, *props, err_info))
         {
             return false;
         }
 
-        switch (props.get_data_type())
+        switch (props->get_data_type())
         {
         case dt_string:
-            if (props.get_column_size() > 255)
+            if (props->get_column_size() > 255)
             {
                 bind_into<dt_string>();
             }
             else
             {
                 bind_into<dt_string_mn_256>();
-                props.set_data_type(dt_string_mn_256);
+                props->set_data_type(dt_string_mn_256);
             }
             break;
         case dt_double:
@@ -753,12 +684,12 @@ bool statement_impl::describe(mn_odbc_error_info& err_info)
         case dt_date:
             //bind_into<dt_date>();
             bind_into<dt_timestamp_struct>();
-            props.set_data_type(dt_timestamp_struct);
+            props->set_data_type(dt_timestamp_struct);
             break;
         default:
             std::ostringstream msg;
-            msg << "db column type " << props.get_data_type()
-                <<" not supported for dynamic selects"<<std::endl;
+            msg << "db column type " << props->get_data_type()
+                <<" not supported for dynamic selects" << std::endl;
             throw soci_error(msg.str());
         }
         row_->add_properties(props);
@@ -781,7 +712,6 @@ void statement_impl::set_row(row * r)
     }
 
     row_ = r;
-    row_->uppercase_column_names(session_.get_uppercase_column_names());
 }
 
 std::string statement_impl::rewrite_for_procedure_call(std::string const & query)

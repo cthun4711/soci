@@ -17,7 +17,7 @@
 using namespace soci;
 using namespace soci::details;
 
-indicator values::get_indicator(std::size_t pos) const
+SQLLEN values::get_indicator(std::size_t pos) const
 {
     if (row_)
     {
@@ -29,26 +29,7 @@ indicator values::get_indicator(std::size_t pos) const
     }
 }
 
-indicator values::get_indicator(std::string const& name) const
-{
-    if (row_)
-    {
-        return row_->get_indicator(name);
-    }
-    else
-    {
-        std::map<std::string, std::size_t>::const_iterator it = index_.find(name);
-        if (it == index_.end())
-        {
-            std::ostringstream msg;
-            msg << "Column '" << name << "' not found";
-            throw soci_error(msg.str());
-        }
-        return *indicators_[it->second];
-    }
-}
-
-column_properties const& values::get_properties(std::size_t pos) const
+column_properties* values::get_properties(std::size_t pos) const
 {
     if (row_)
     {
@@ -58,12 +39,3 @@ column_properties const& values::get_properties(std::size_t pos) const
     throw soci_error("Rowset is empty");
 }
 
-column_properties const& values::get_properties(std::string const& name) const
-{
-    if (row_)
-    {
-        return row_->get_properties(name);
-    }
-
-    throw soci_error("Rowset is empty");
-}

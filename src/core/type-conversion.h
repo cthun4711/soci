@@ -51,7 +51,7 @@ public:
         assert(ownInd_ == ind_);
     }
     
-    conversion_into_type(T & value, indicator & ind)
+    conversion_into_type(T & value, SQLLEN & ind)
         : into_type<base_type>(details::base_value_holder<T>::val_, ind)
         , value_(value)
         , ownInd_(ind) // unused, just keep the pair of indicator(s) consistent
@@ -70,12 +70,12 @@ private:
 
     T & value_;
 
-    indicator ownInd_;
+    SQLLEN ownInd_;
 
     // ind_ refers to either ownInd_, or the one provided by the user
     // in any case, ind_ refers to some valid indicator
     // and can be used by conversion routines
-    indicator & ind_;
+    SQLLEN & ind_;
 };
 
 // Automatically create use_type from a type_conversion
@@ -114,7 +114,7 @@ public:
         //convert_to_base();
     }
     
-    conversion_use_type(T & value, indicator & ind,
+    conversion_use_type(T & value, SQLLEN & ind,
             std::string const & name = std::string())
         : use_type<base_type>(details::base_value_holder<T>::val_, ind, name)
         , value_(value)
@@ -125,7 +125,7 @@ public:
         //convert_to_base();
     }
     
-    conversion_use_type(T const & value, indicator & ind,
+    conversion_use_type(T const & value, SQLLEN & ind,
             std::string const & name = std::string())
         : use_type<base_type>(details::base_value_holder<T>::val_, ind, name)
         , value_(const_cast<T &>(value))
@@ -160,12 +160,12 @@ public:
 private:
     T & value_;
 
-    indicator ownInd_;
+    SQLLEN ownInd_;
 
     // ind_ refers to either ownInd_, or the one provided by the user
     // in any case, ind_ refers to some valid indicator
     // and can be used by conversion routines
-    indicator & ind_;
+    SQLLEN & ind_;
 
     bool readOnly_;
 };
@@ -203,7 +203,7 @@ public:
         assert(ownInd_ == ind_);
     }
 
-    conversion_into_type(std::vector<T> & value, std::vector<indicator> & ind)
+    conversion_into_type(std::vector<T> & value, std::vector<SQLLEN> & ind)
         : details::base_vector_holder<T>(value.size())
         , into_type<base_type>(details::base_vector_holder<T>::vec_, ind)
         , value_(value)
@@ -241,12 +241,12 @@ private:
 
     std::vector<T> & value_;
 
-    std::vector<indicator> ownInd_;
+    std::vector<SQLLEN> ownInd_;
 
     // ind_ refers to either ownInd_, or the one provided by the user
     // in any case, ind_ refers to some valid vector of indicators
     // and can be used by conversion routines
-    std::vector<indicator> & ind_;
+    std::vector<SQLLEN> & ind_;
 };
 
 
@@ -276,7 +276,7 @@ public:
     }
 
     conversion_use_type(std::vector<T> & value,
-            std::vector<indicator> & ind,
+        std::vector<SQLLEN> & ind,
             std::string const & name = std::string())
         : details::base_vector_holder<T>(value.size())
         , use_type<base_type>(
@@ -312,12 +312,12 @@ private:
 
     std::vector<T> & value_;
 
-    std::vector<indicator> ownInd_;
+    std::vector<SQLLEN> ownInd_;
 
     // ind_ refers to either ownInd_, or the one provided by the user
     // in any case, ind_ refers to some valid vector of indicators
     // and can be used by conversion routines
-    std::vector<indicator> & ind_;
+    std::vector<SQLLEN> & ind_;
 };
 
 template <typename T>
@@ -327,7 +327,7 @@ into_type_ptr do_into(T & t, user_type_tag)
 }
 
 template <typename T>
-into_type_ptr do_into(T & t, indicator & ind, user_type_tag)
+into_type_ptr do_into(T & t, SQLLEN & ind, user_type_tag)
 {
     return into_type_ptr(new conversion_into_type<T>(t, ind));
 }
@@ -345,14 +345,14 @@ use_type_ptr do_use(T const & t, std::string const & name, user_type_tag)
 }
 
 template <typename T>
-use_type_ptr do_use(T & t, indicator & ind,
+use_type_ptr do_use(T & t, SQLLEN & ind,
     std::string const & name, user_type_tag)
 {
     return use_type_ptr(new conversion_use_type<T>(t, ind, name));
 }
 
 template <typename T>
-use_type_ptr do_use(T const & t, indicator & ind,
+use_type_ptr do_use(T const & t, SQLLEN & ind,
     std::string const & name, user_type_tag)
 {
     return use_type_ptr(new conversion_use_type<T>(t, ind, name));

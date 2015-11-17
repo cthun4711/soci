@@ -21,10 +21,10 @@ struct type_conversion<boost::optional<T> >
 {
     typedef typename type_conversion<T>::base_type base_type;
 
-    static void from_base(base_type const & in, indicator ind,
+    static void from_base(base_type const & in, SQLLEN ind,
         boost::optional<T> & out)
     {
-        if (ind == i_null)
+        if (ind == SQL_NULL_DATA)
         {
             out.reset();
         }
@@ -37,7 +37,7 @@ struct type_conversion<boost::optional<T> >
     }
 
     static void to_base(boost::optional<T> const & in,
-        base_type & out, indicator & ind)
+        base_type & out, SQLLEN & ind)
     {
         if (in.is_initialized())
         {
@@ -45,7 +45,7 @@ struct type_conversion<boost::optional<T> >
         }
         else
         {
-            ind = i_null;
+            ind = SQL_NULL_DATA;
         }
     }
 };

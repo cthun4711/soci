@@ -19,68 +19,56 @@ namespace soci
 // these helpers work with both basic and user-defined types thanks to
 // the tag-dispatching, as defined in exchange_traits template
 
-template <typename T>
-details::use_type_ptr use(T & t, std::string const & name = std::string())
+template <typename MNSociArrayString>
+details::use_type_ptr use(MNSociArrayString & t)
 {
-    return details::do_use(t, name,
+    return details::do_use<MNSociArrayString>(t,
+        typename details::exchange_traits<MNSociArrayString>::type_family());
+}
+
+template <typename T>
+details::use_type_ptr use(T & t, SQLLEN & ind)
+{
+    return details::do_use(t, ind, 
         typename details::exchange_traits<T>::type_family());
 }
 
 template <typename T>
-details::use_type_ptr use(T const & t,
-    std::string const & name = std::string())
+details::use_type_ptr use(T const & t, SQLLEN & ind)
 {
-    return details::do_use(t, name,
+    return details::do_use(t, ind, 
         typename details::exchange_traits<T>::type_family());
 }
 
 template <typename T>
-details::use_type_ptr use(T & t, indicator & ind,
-    std::string const &name = std::string())
+details::use_type_ptr use(T & t, std::vector<SQLLEN> & ind)
 {
-    return details::do_use(t, ind, name,
+    return details::do_use(t, ind, 
         typename details::exchange_traits<T>::type_family());
 }
 
 template <typename T>
-details::use_type_ptr use(T const & t, indicator & ind,
-    std::string const &name = std::string())
+details::use_type_ptr use(T const & t, std::vector<SQLLEN> & ind)
 {
-    return details::do_use(t, ind, name,
+    return details::do_use(t, ind, 
         typename details::exchange_traits<T>::type_family());
 }
 
-template <typename T>
-details::use_type_ptr use(T & t, std::vector<indicator> & ind,
-    std::string const & name = std::string())
-{
-    return details::do_use(t, ind, name,
-        typename details::exchange_traits<T>::type_family());
-}
+//// for char buffer with run-time size information
+//template <typename T>
+//details::use_type_ptr use(T & t, std::size_t bufSize,
+//    std::string const & name = std::string())
+//{
+//    return details::use_type_ptr(new details::use_type<T>(t, bufSize));
+//}
 
-template <typename T>
-details::use_type_ptr use(T const & t, std::vector<indicator> & ind,
-    std::string const & name = std::string())
-{
-    return details::do_use(t, ind, name,
-        typename details::exchange_traits<T>::type_family());
-}
-
-// for char buffer with run-time size information
-template <typename T>
-details::use_type_ptr use(T & t, std::size_t bufSize,
-    std::string const & name = std::string())
-{
-    return details::use_type_ptr(new details::use_type<T>(t, bufSize));
-}
-
-// for char buffer with run-time size information
-template <typename T>
-details::use_type_ptr use(T const & t, std::size_t bufSize,
-    std::string const & name = std::string())
-{
-    return details::use_type_ptr(new details::use_type<T>(t, bufSize));
-}
+//// for char buffer with run-time size information
+//template <typename T>
+//details::use_type_ptr use(T const & t, std::size_t bufSize,
+//    std::string const & name = std::string())
+//{
+//    return details::use_type_ptr(new details::use_type<T>(t, bufSize));
+//}
 
 } // namespace soci
 

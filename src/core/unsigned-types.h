@@ -21,10 +21,10 @@ struct type_conversion<unsigned char>
 {
     typedef long long base_type;
 
-    static void from_base(base_type const & in, indicator ind,
+    static void from_base(base_type const & in, SQLLEN ind,
         unsigned char & out)
     {
-        if (ind == i_null)
+        if (ind == SQL_NULL_DATA)
         {
             throw soci_error("Null value not allowed for this type.");
         }
@@ -40,10 +40,10 @@ struct type_conversion<unsigned char>
     }
 
     static void to_base(unsigned char const & in,
-        base_type & out, indicator & ind)
+        base_type & out, SQLLEN & ind)
     {
         out = static_cast<base_type>(in);
-        ind = i_ok;
+        ind = 1;
     }
 };
 
@@ -52,10 +52,10 @@ struct type_conversion<unsigned short>
 {
     typedef long long base_type;
 
-    static void from_base(base_type const & in, indicator ind,
+    static void from_base(base_type const & in, SQLLEN ind,
         unsigned short & out)
     {
-        if (ind == i_null)
+        if (ind == SQL_NULL_DATA)
         {
             throw soci_error("Null value not allowed for this type.");
         }
@@ -71,10 +71,10 @@ struct type_conversion<unsigned short>
     }
 
     static void to_base(unsigned short const & in,
-        base_type & out, indicator & ind)
+        base_type & out, SQLLEN & ind)
     {
         out = static_cast<base_type>(in);
-        ind = i_ok;
+        ind = 1;
     }
 };
 
@@ -83,10 +83,10 @@ struct type_conversion<unsigned int>
 {
     typedef long long base_type;
 
-    static void from_base(base_type const & in, indicator ind,
+    static void from_base(base_type const & in, SQLLEN ind,
         unsigned int & out)
     {
-        if (ind == i_null)
+        if (ind == SQL_NULL_DATA)
         {
             throw soci_error("Null value not allowed for this type.");
         }
@@ -102,10 +102,10 @@ struct type_conversion<unsigned int>
     }
 
     static void to_base(unsigned int const & in,
-        base_type & out, indicator & ind)
+        base_type & out, SQLLEN & ind)
     {
         out = static_cast<base_type>(in);
-        ind = i_ok;
+        ind = 1;
     }
 };
 

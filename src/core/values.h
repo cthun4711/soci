@@ -51,8 +51,7 @@ public:
 
     values() : row_(NULL), currentPos_(0), uppercaseColumnNames_(false) {}
 
-    indicator get_indicator(std::size_t pos) const;
-    indicator get_indicator(std::string const & name) const;
+    SQLLEN get_indicator(std::size_t pos) const;
 
     template <typename T>
     T get(std::size_t pos) const
@@ -61,7 +60,7 @@ public:
         {
             return row_->get<T>(pos);
         }
-        else if (*indicators_[pos] != i_null)
+        else if (*indicators_[pos] != SQL_NULL_DATA)
         {
             return get_from_uses<T>(pos);
         }
@@ -82,7 +81,7 @@ public:
         {
             return row_->get<T>(pos, nullValue);
         }
-        else if (*indicators_[pos] == i_null)
+        else if (*indicators_[pos] == SQL_NULL_DATA)
         {
             return nullValue;
         }
@@ -116,7 +115,7 @@ public:
 
             *row_ >> value;
         }
-        else if (*indicators_[currentPos_] != i_null)
+        else if (*indicators_[currentPos_] != SQL_NULL_DATA)
         {
             // if there is no row object, then the data can be
             // extracted from the locally stored use elements,
@@ -163,18 +162,18 @@ public:
     }
     
     template <typename T>
-    void set(std::string const & name, T const & value, indicator indic = i_ok)
+    void set(std::string const & name, T const & value, SQLLEN indic = 1)
     {
         typedef typename type_conversion<T>::base_type base_type;
         if(index_.find(name) == index_.end())
         {
             index_.insert(std::make_pair(name, uses_.size()));
 
-            indicator * pind = new indicator(indic);
+            SQLLEN * pind = new SQLLEN(indic);
             indicators_.push_back(pind);
 
             base_type baseValue;
-            if (indic == i_ok)
+            if (indic != SQL_NULL_DATA)
             {
                 type_conversion<T>::to_base(value, baseValue, *pind);
             }
@@ -190,7 +189,7 @@ public:
         {
             size_t index = index_.find(name)->second;
             *indicators_[index] = indic;
-            if (indic == i_ok)
+            if (indic != SQL_NULL_DATA)
             {
                 type_conversion<T>::to_base(
                         value,
@@ -201,9 +200,9 @@ public:
     }
 
     template <typename T>
-    void set(const T & value, indicator indic = i_ok)
+    void set(const T & value, SQLLEN indic = 1)
     {
-        indicator * pind = new indicator(indic);
+        SQLLEN * pind = new SQLLEN(indic);
         indicators_.push_back(pind);
 
         typedef typename type_conversion<T>::base_type base_type;
@@ -230,8 +229,7 @@ public:
         uppercaseColumnNames_ = forceToUpper;
     }
 
-    column_properties const& get_properties(std::size_t pos) const;
-    column_properties const& get_properties(std::string const &name) const;
+    column_properties* get_properties(std::size_t pos) const;
 
 private:
 
@@ -239,8 +237,8 @@ private:
     // these should be reference counted smart pointers
     row * row_;
     std::vector<details::standard_use_type *> uses_;
-    std::map<details::use_type_base *, indicator *> unused_;
-    std::vector<indicator *> indicators_;
+    std::map<details::use_type_base *, SQLLEN *> unused_;
+    std::vector<SQLLEN *> indicators_;
     std::map<std::string, std::size_t> index_;
     std::vector<details::copy_base *> deepCopies_;
 
@@ -257,7 +255,7 @@ private:
         std::map<std::string, std::size_t>::const_iterator pos = index_.find(name);
         if (pos != index_.end())
         {
-            if (*indicators_[pos->second] == i_null)
+            if (*indicators_[pos->second] == SQL_NULL_DATA)
             {
                 return nullValue;
             }
@@ -290,7 +288,7 @@ private:
             base_type const & baseValue = *static_cast<base_type*>(u->get_data());
 
             T val;
-            indicator ind = *indicators_[pos];
+            SQLLEN ind = *indicators_[pos];
             type_conversion<T>::from_base(baseValue, ind, val);
             return val;
         }
@@ -308,13 +306,12 @@ private:
     row& get_row()
     {
         row_ = new row();
-        row_->uppercase_column_names(uppercaseColumnNames_);
 
         return * row_;
     }
     
     // this is called by Statement::bind(values)
-    void add_unused(details::use_type_base * u, indicator * i)
+    void add_unused(details::use_type_base * u, SQLLEN * i)
     {
         static_cast<details::standard_use_type *>(u)->convert_to_base();
         unused_.insert(std::make_pair(u, i));
@@ -330,7 +327,7 @@ private:
         // delete any uses and indicators which were created  by set() but
         // were not bound by the Statement
         // (bound uses and indicators are deleted in Statement::clean_up())
-        for (std::map<details::use_type_base *, indicator *>::iterator pos =
+        for (std::map<details::use_type_base *, SQLLEN *>::iterator pos =
             unused_.begin(); pos != unused_.end(); ++pos)
         {
             delete pos->first;

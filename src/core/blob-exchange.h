@@ -24,25 +24,18 @@ template <>
 class into_type<blob> : public standard_into_type
 {
 public:
-    into_type(blob & b) : standard_into_type(&b, x_blob) {}
-    into_type(blob & b, indicator & ind)
-        : standard_into_type(&b, x_blob, ind) {}
+    into_type(blob & b, SQLLEN & ind)
+        : standard_into_type(&b, x_blob, &ind) {}
 };
 
 template <>
 class use_type<blob> : public standard_use_type
 {
 public:
-    use_type(blob & b, std::string const & name = std::string())
-        : standard_use_type(&b, x_blob, false, name) {}
-    use_type(blob const & b, std::string const & name = std::string())
-        : standard_use_type(const_cast<blob *>(&b), x_blob, true, name) {}
-    use_type(blob & b, indicator & ind,
-        std::string const & name = std::string())
-        : standard_use_type(&b, x_blob, ind, false, name) {}
-    use_type(blob const & b, indicator & ind,
-        std::string const & name = std::string())
-        : standard_use_type(const_cast<blob *>(&b), x_blob, ind, true, name) {}
+    use_type(blob & b, SQLLEN & ind)
+        : standard_use_type(&b, x_blob, &ind, false) {}
+    use_type(blob const & b, SQLLEN & ind)
+        : standard_use_type(const_cast<blob *>(&b), x_blob, &ind, true) {}
 };
 
 template <>

@@ -62,9 +62,9 @@ public:
     // forwarders to procedure_impl
     // (or rather to its base interface from statement_impl)
 
-    int execute(int iFetchSize, mn_odbc_error_info& err_info)
+    int execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize = -1)
     {
-        resultSetSize_ = impl_->execute(iFetchSize, err_info);
+        resultSetSize_ = impl_->execute(iFetchSize, err_info, iIntoSize);
         gotData_ = resultSetSize_ != 0;
         return resultSetSize_;
     }

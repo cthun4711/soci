@@ -20,19 +20,19 @@ struct type_conversion
 {
     typedef T base_type;
 
-    static void from_base(base_type const & in, indicator ind, T & out)
+    static void from_base(base_type const & in, SQLLEN ind, T & out)
     {
-        if (ind == i_null)
+        if (ind == SQL_NULL_DATA)
         {
             throw soci_error("Null value not allowed for this type");
         }
         out = in;
     }
 
-    static void to_base(T const & in, base_type & out, indicator & ind)
+    static void to_base(T const & in, base_type & out, SQLLEN & ind)
     {
         out = in;
-        ind = i_ok;
+        ind = 1;
     }
 };
 

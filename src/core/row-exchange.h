@@ -29,7 +29,7 @@ class into_type<row>
 {
 public:
     into_type(row & r) : r_(r) {}
-    into_type(row & r, indicator &) : r_(r) {}
+    into_type(row & r, SQLLEN &) : r_(r) {}
 
 private:
     // special handling for Row

@@ -52,16 +52,14 @@ typedef type_ptr<into_type_base> into_type_ptr;
 class SOCI_DECL standard_into_type : public into_type_base
 {
 public:
-    standard_into_type(void * data, exchange_type type)
-        : data_(data), type_(type), ind_(NULL), backEnd_(NULL) {}
-    standard_into_type(void * data, exchange_type type, indicator & ind)
-        : data_(data), type_(type), ind_(&ind), backEnd_(NULL) {}
+    standard_into_type(void * data, exchange_type type, SQLLEN* ind)
+        : data_(data), type_(type), ind_(ind), backEnd_(NULL) {}
 
     virtual ~standard_into_type();
 
 protected:
     virtual void post_fetch(bool gotData, bool calledFromFetch);
-
+    
 private:
     virtual void define(statement_impl & st, int & position);
     virtual void pre_fetch();
@@ -74,7 +72,7 @@ private:
 
     void * data_;
     exchange_type type_;
-    indicator * ind_;
+    SQLLEN * ind_;
 
     standard_into_type_backend * backEnd_;
 };
@@ -83,12 +81,8 @@ private:
 class SOCI_DECL vector_into_type : public into_type_base
 {
 public:
-    vector_into_type(void * data, exchange_type type)
-        : data_(data), type_(type), indVec_(NULL), backEnd_(NULL) {}
-
-    vector_into_type(void * data, exchange_type type,
-        std::vector<indicator> & ind)
-        : data_(data), type_(type), indVec_(&ind), backEnd_(NULL) {}
+    vector_into_type(void * data, exchange_type type, SQLLEN* indHolders)
+        : data_(data), type_(type), indHolders_(indHolders), backEnd_(NULL) {}
 
     ~vector_into_type();
 
@@ -99,12 +93,12 @@ private:
     virtual void define(statement_impl & st, int & position);
     virtual void pre_fetch();
     virtual void clean_up();
-    virtual void resize(std::size_t sz);
+    virtual void resize(std::size_t /*sz*/);
     virtual std::size_t size() const;
 
     void * data_;
     exchange_type type_;
-    std::vector<indicator> * indVec_;
+    SQLLEN* indHolders_;
 
     vector_into_type_backend * backEnd_;
 
@@ -120,22 +114,20 @@ class into_type : public standard_into_type
 public:
     into_type(T & t)
         : standard_into_type(&t,
-            static_cast<exchange_type>(exchange_traits<T>::x_type)) {}
-    into_type(T & t, indicator & ind)
+        static_cast<exchange_type>(exchange_traits<T>::x_type)) {}
+
+    into_type(T & t, SQLLEN & ind)
         : standard_into_type(&t,
-            static_cast<exchange_type>(exchange_traits<T>::x_type), ind) {}
+            static_cast<exchange_type>(exchange_traits<T>::x_type), &ind) {}
 };
 
 template <typename T>
 class into_type<std::vector<T> > : public vector_into_type
 {
 public:
-    into_type(std::vector<T> & v)
+    into_type(std::vector<T> & v, std::vector<SQLLEN>& vecInd)
         : vector_into_type(&v,
-            static_cast<exchange_type>(exchange_traits<T>::x_type)) {}
-    into_type(std::vector<T> & v, std::vector<indicator> & ind)
-        : vector_into_type(&v,
-            static_cast<exchange_type>(exchange_traits<T>::x_type), ind) {}
+        static_cast<exchange_type>(exchange_traits<T>::x_type), (SQLLEN*)&vecInd[0]) {}
 };
 
 template <>
@@ -144,30 +136,27 @@ class into_type<MNSociArrayString > : public vector_into_type
 public:
     into_type(MNSociArrayString & v)
         : vector_into_type(&v,
-        static_cast<exchange_type>(exchange_traits<MNSociArrayString>::x_type)) {}
-    into_type(MNSociArrayString & v, std::vector<indicator> & ind)
-        : vector_into_type(&v,
-        static_cast<exchange_type>(exchange_traits<MNSociArrayString>::x_type), ind) {}
+        static_cast<exchange_type>(exchange_traits<MNSociArrayString>::x_type), NULL) {}
 };
 
 // helper dispatchers for basic types
 
 template <typename T>
-into_type_ptr do_into(T & t, basic_type_tag)
-{
-    return into_type_ptr(new into_type<T>(t));
-}
-
-template <typename T>
-into_type_ptr do_into(T & t, indicator & ind, basic_type_tag)
+into_type_ptr do_into(T & t, SQLLEN & ind, basic_type_tag)
 {
     return into_type_ptr(new into_type<T>(t, ind));
 }
 
 template <typename T>
-into_type_ptr do_into(T & t, std::vector<indicator> & ind, basic_type_tag)
+into_type_ptr do_into(T & t, std::vector<SQLLEN> & vecInd, basic_type_tag)
 {
-    return into_type_ptr(new into_type<T>(t, ind));
+    return into_type_ptr(new into_type<T>(t, vecInd));
+}
+
+template <typename MNSociArrayString>
+into_type_ptr do_into(MNSociArrayString & t, basic_type_tag)
+{
+    return into_type_ptr(new into_type<MNSociArrayString>(t));
 }
 
 } // namespace details

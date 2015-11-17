@@ -11,6 +11,7 @@
 #include "into-type.h"
 #include "exchange-traits.h"
 #include "type-conversion.h"
+#include "mnsocistring.h"
 // std
 #include <cstddef>
 #include <vector>
@@ -23,31 +24,23 @@ namespace soci
 // the tag-dispatching, as defined in exchange_traits template
 
 template <typename T>
-details::into_type_ptr into(T & t)
-{
-    return details::do_into(t,
-        typename details::exchange_traits<T>::type_family());
-}
-
-template <typename T>
-details::into_type_ptr into(T & t, indicator & ind)
+details::into_type_ptr into(T & t, SQLLEN & ind)
 {
     return details::do_into(t, ind,
         typename details::exchange_traits<T>::type_family());
 }
 
 template <typename T>
-details::into_type_ptr into(T & t, std::vector<indicator> & ind)
+details::into_type_ptr into(T & t, std::vector<SQLLEN> & ind)
 {
     return details::do_into(t, ind,
         typename details::exchange_traits<T>::type_family());
 }
 
-// for char buffer with run-time size information
-template <typename T>
-details::into_type_ptr into(T & t, std::size_t bufSize)
+template <typename MNSociArrayString>
+details::into_type_ptr into(MNSociArrayString & t)
 {
-    return details::into_type_ptr(new details::into_type<T>(t, bufSize));
+    return details::do_into<MNSociArrayString>(t, typename details::exchange_traits<MNSociArrayString>::type_family());
 }
 
 } // namespace soci

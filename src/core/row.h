@@ -29,25 +29,25 @@ public:
     column_properties();
     column_properties(const column_properties& obj);
 
-    column_properties& operator=(const column_properties& obj);
+    column_properties& operator= (const column_properties& obj);
 
-    const std::string&  get_name() const { return name_; }
-    data_type           get_data_type() const { return dataType_; }
-    unsigned int        get_column_size() const { return colSize_; }
-    short               get_decimal_digits() const { return decDigits_; }
-    bool                get_is_nullable() const { return isNullable_; }
+    SQLCHAR*            get_name();
+    data_type           get_data_type() const;
+    SQLULEN&            get_column_size();
+    SQLSMALLINT&        get_decimal_digits();
+    bool                get_is_nullable() const;
 
-    void set_name(std::string const& name) { name_ = name; }
-    void set_data_type(data_type dataType)  { dataType_ = dataType; }
-    void set_column_size(unsigned int iColSize) { colSize_ = iColSize;  }
-    void set_decimal_digits(short iDecDigits) { decDigits_ = iDecDigits;  }
-    void set_is_nullable(bool bIsNullable) { isNullable_ = bIsNullable; }
+    void set_name(char* name);
+    void set_column_size(SQLULEN colSize);
+    void set_decimal_digits(SQLSMALLINT decDigits);
+    void set_data_type(data_type dataType);
+    void set_is_nullable(bool bIsNullable);
 
 private:
-    std::string name_;
+    SQLCHAR name_[2048];
     data_type dataType_;
-    unsigned int colSize_;
-    short decDigits_;
+    SQLULEN colSize_;
+    SQLSMALLINT decDigits_;
     bool  isNullable_;
 };
 
@@ -57,16 +57,14 @@ public:
     row();
     ~row();
 
-    void uppercase_column_names(bool forceToUpper);
-    void add_properties(column_properties const& cp);
+    void add_properties(column_properties* cp);
     const std::size_t& size() const;
     void clean_up();
 
-    indicator get_indicator(const std::size_t& pos) const;
-    indicator get_indicator(std::string const& name) const;
+    SQLLEN get_indicator(const std::size_t& pos) const;
 
     template <typename T>
-    inline void add_holder(T* t, indicator* ind)
+    inline void add_holder(T* t, SQLLEN* ind)
     {
         holders_.push_back(new details::type_holder<T>(t));
         indicators_.push_back(ind);
@@ -74,8 +72,7 @@ public:
         row_size_ = holders_.size();
     }
 
-    column_properties const& get_properties(const std::size_t& pos) const;
-    column_properties const& get_properties(std::string const& name) const;
+    column_properties*       get_properties(const std::size_t& pos) const;
 
     data_type                getDatatypeForColumn(const std::size_t& pos) const;
 
@@ -113,25 +110,6 @@ public:
         return get<T>(pos);
     }
 
-    template <typename T>
-    T get(std::string const &name) const
-    {
-        std::size_t const pos = find_column(name);
-        return get<T>(pos);
-    }
-
-    template <typename T>
-    T get(std::string const &name, T const &nullValue) const
-    {
-        std::size_t const pos = find_column(name);
-
-        if (i_null == *indicators_[pos])
-        {
-            return nullValue;
-        }
-
-        return get<T>(pos);
-    }
 
     template <typename T>
     row const& operator>>(T& value) const
@@ -156,14 +134,10 @@ private:
     row(row const &);
     void operator=(row const &);
 
-    std::size_t find_column(std::string const& name) const;
-
-    std::vector<column_properties> columns_;
+    std::vector<column_properties*> columns_;
     std::vector<details::holder*> holders_;
-    std::vector<indicator*> indicators_;
-    std::map<std::string, std::size_t> index_;
+    std::vector<SQLLEN*> indicators_;
 
-    bool uppercaseColumnNames_;
     mutable std::size_t currentPos_;
     size_t  row_size_;
 };

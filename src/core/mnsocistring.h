@@ -9,32 +9,36 @@
 #define MNSOCISTRING_H_INCLUDED
 
 #include "soci-config.h"
+#include <sqltypes.h>
+#include <sql.h>
+#include <vector>
 
 
 
-class SOCI_DECL MNSociString
+class MNSociString
 {
 public:
-    MNSociString() { m_ptrCharData = new char[257]; m_ptrCharData[0] = '\0'; }
-    MNSociString(const char* ptrChar) { m_ptrCharData = new char[257]; strcpy(m_ptrCharData, ptrChar); }
+    MNSociString() { m_ptrCharData = new char[257]; m_ptrCharData[0] = '\0'; m_iIndicator = 0; }
+    MNSociString(const char* ptrChar) { m_ptrCharData = new char[257]; strcpy(m_ptrCharData, ptrChar); m_iIndicator = strlen(ptrChar); }
     MNSociString(const MNSociString& obj) { m_ptrCharData = new char[257]; *this = obj; }
     ~MNSociString() 
     {
         if (m_ptrCharData != NULL)  
         { 
-            delete m_ptrCharData; 
+            delete [] m_ptrCharData; 
             m_ptrCharData = NULL; 
         }
     }
 
-    MNSociString& operator = (const MNSociString& obj)  { strcpy(m_ptrCharData, obj.m_ptrCharData); return *this; }
-    MNSociString& operator = (char* ptrChar)            { strcpy(m_ptrCharData, ptrChar); return *this; }
-    MNSociString& operator = (const char* ptrChar)      { strcpy(m_ptrCharData, ptrChar); return *this; }
+    MNSociString& operator = (const MNSociString& obj)  { strcpy(m_ptrCharData, obj.m_ptrCharData); m_iIndicator = obj.m_iIndicator; return *this; }
+    MNSociString& operator = (char* ptrChar)            { strcpy(m_ptrCharData, ptrChar); m_iIndicator = strlen(ptrChar); return *this; }
+    MNSociString& operator = (const char* ptrChar)      { strcpy(m_ptrCharData, ptrChar); m_iIndicator = strlen(ptrChar); return *this; }
 
     char* m_ptrCharData;
+    SQLLEN m_iIndicator;
 };
 
-class SOCI_DECL MNSociArrayString
+class MNSociArrayString
 {
 public:
     MNSociArrayString(int iArraySize) 
@@ -43,25 +47,28 @@ public:
         m_ptrArrayCharData[0] = '\0'; 
         m_iCurrentArrayInsertPosition = 0; 
         m_iArraySize = iArraySize; 
+        m_vecIndicators.resize(iArraySize, SQL_NULL_DATA);
     }
 
     ~MNSociArrayString()
     {
         if (m_ptrArrayCharData)
         {
-            delete m_ptrArrayCharData;
+            delete [] m_ptrArrayCharData;
             m_ptrArrayCharData = NULL;
         }
     }
 
     MNSociArrayString& operator = (const MNSociArrayString& obj); //create compile error when used
 
-    void    push_back(const char* ptrChar) { strcpy(&m_ptrArrayCharData[m_iCurrentArrayInsertPosition * 257], ptrChar); ++m_iCurrentArrayInsertPosition; }
-    void    push_back(char* ptrChar) { strcpy(&m_ptrArrayCharData[m_iCurrentArrayInsertPosition * 257], ptrChar); ++m_iCurrentArrayInsertPosition; }
+    void    push_back(const char* ptrChar) { strcpy(&m_ptrArrayCharData[m_iCurrentArrayInsertPosition * 257], ptrChar); m_vecIndicators[m_iCurrentArrayInsertPosition] = ptrChar ? strlen(ptrChar) : SQL_NULL_DATA;  ++m_iCurrentArrayInsertPosition; }
+    void    push_back(char* ptrChar) { strcpy(&m_ptrArrayCharData[m_iCurrentArrayInsertPosition * 257], ptrChar); m_vecIndicators[m_iCurrentArrayInsertPosition] = ptrChar ? strlen(ptrChar) : SQL_NULL_DATA; ++m_iCurrentArrayInsertPosition; }
     
     char*   getValue(const int& iCurrentArrayReadPos) { return &m_ptrArrayCharData[iCurrentArrayReadPos * 257]; }
+    SQLLEN  getIndicator(const int& iCurrentArrayReadPos) { return m_vecIndicators[iCurrentArrayReadPos]; }
 
     char*       getArrayCharData()  { return m_ptrArrayCharData; }
+    SQLLEN*     getArrayIndicators() { return (SQLLEN*)&m_vecIndicators[0]; }
     const int&  getArraySize()      { return m_iArraySize; }
     int         getCurrentInsertedElementCount() { return m_iCurrentArrayInsertPosition; }
 
@@ -73,6 +80,8 @@ private:
     int     m_iCurrentArrayInsertPosition;
 
     char*   m_ptrArrayCharData;
+
+    std::vector<SQLLEN> m_vecIndicators;
 };
 
 #endif // MNSOCISTRING_H_INCLUDED

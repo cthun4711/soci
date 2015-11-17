@@ -26,19 +26,10 @@
 using namespace soci;
 using namespace soci::details;
 
-void odbc_vector_use_type_backend::prepare_indicators(std::size_t size)
-{
-    if (size == 0)
-    {
-         throw soci_error("Vectors of size 0 are not allowed.");
-    }
 
-    indHolderVec_.resize(size);
-    indHolders_ = &indHolderVec_[0];
-}
 
 void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &size,
-    SQLSMALLINT &sqlType, SQLSMALLINT &cType)
+    SQLSMALLINT &sqlType, SQLSMALLINT &cType, SQLLEN* ind)
 {
     switch (type_)
     {    // simple cases
@@ -49,8 +40,8 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             size = sizeof(short);
             std::vector<short> *vp = static_cast<std::vector<short> *>(data);
             std::vector<short> &v(*vp);
-            prepare_indicators(v.size());
             data = &v[0];
+            arraySize_ = v.size();
         }
         break;
     case x_integer:
@@ -61,8 +52,8 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             assert(sizeof(SQLINTEGER) == sizeof(int));
             std::vector<int> *vp = static_cast<std::vector<int> *>(data);
             std::vector<int> &v(*vp);
-            prepare_indicators(v.size());
             data = &v[0];
+            arraySize_ = v.size();
         }
         break;
     case x_long_long:
@@ -70,24 +61,11 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             std::vector<long long> *vp =
                 static_cast<std::vector<long long> *>(data);
             std::vector<long long> &v(*vp);
-            std::size_t const vsize = v.size();
-            prepare_indicators(vsize);
-
-            //if (use_string_for_bigint())
-            //{
-            //    sqlType = SQL_NUMERIC;
-            //    cType = SQL_C_CHAR;
-            //    size = max_bigint_length;
-            //    buf_ = new char[size * vsize];
-            //    data = buf_;
-            //}
-            //else // Normal case, use ODBC support.
-            //{
-                sqlType = SQL_INTEGER;
-                cType = SQL_C_SLONG;
-                size = sizeof(long long);
-                data = &v[0];
-            //}
+            sqlType = SQL_INTEGER;
+            cType = SQL_C_SLONG;
+            size = sizeof(long long);
+            data = &v[0];
+            arraySize_ = v.size();
         }
         break;
     case x_unsigned_long_long:
@@ -95,24 +73,12 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             std::vector<unsigned long long> *vp =
                 static_cast<std::vector<unsigned long long> *>(data);
             std::vector<unsigned long long> &v(*vp);
-            std::size_t const vsize = v.size();
-            prepare_indicators(vsize);
 
-            //if (use_string_for_bigint())
-            //{
-            //    sqlType = SQL_NUMERIC;
-            //    cType = SQL_C_CHAR;
-            //    size = max_bigint_length;
-            //    buf_ = new char[size * vsize];
-            //    data = buf_;
-            //}
-            //else // Normal case, use ODBC support.
-            //{
             sqlType = SQL_INTEGER;
             cType = SQL_C_SLONG;
-                size = sizeof(unsigned long long);
-                data = &v[0];
-            //}
+            size = sizeof(unsigned long long);
+            data = &v[0];
+            arraySize_ = v.size();
         }
         break;
     case x_double:
@@ -122,8 +88,8 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             size = sizeof(double);
             std::vector<double> *vp = static_cast<std::vector<double> *>(data);
             std::vector<double> &v(*vp);
-            prepare_indicators(v.size());
             data = &v[0];
+            arraySize_ = v.size();
         }
         break;
 
@@ -133,8 +99,6 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             std::vector<char> *vp
                 = static_cast<std::vector<char> *>(data);
             std::size_t const vsize = vp->size();
-
-            prepare_indicators(vsize);
 
             size = sizeof(char) * 2;
             buf_ = new char[size * vsize];
@@ -150,6 +114,7 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             sqlType = SQL_CHAR;
             cType = SQL_C_CHAR;
             data = buf_;
+            arraySize_ = vp->size();
         }
         break;
     case x_stdstring:
@@ -163,20 +128,21 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
 
             std::size_t maxSize = 0;
             std::size_t const vecSize = v.size();
-            prepare_indicators(vecSize);
             for (std::size_t i = 0; i != vecSize; ++i)
             {
                 std::size_t sz = v[i].length(); // +1;  // add one for null
                 if (sz != 0)
                 {
-                    indHolderVec_[i] = static_cast<long>(sz);
+                    ind[i] = static_cast<long>(sz);
                 }
                 else
                 {
-                    indHolderVec_[i] = SQL_NULL_DATA;
+                    ind[i] = SQL_NULL_DATA;
                 }
                 maxSize = sz > maxSize ? sz : maxSize;
             }
+
+            arraySize_ = vecSize;
 
             buf_ = new char[maxSize * vecSize];
             memset(buf_, 0, maxSize * vecSize);
@@ -206,13 +172,10 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
         cType = SQL_C_CHAR;
         
         MNSociArrayString *v = static_cast<MNSociArrayString *>(data);
-        prepare_indicators(v->getCurrentInsertedElementCount());
-        for (int i = 0; i != v->getCurrentInsertedElementCount(); ++i)
-        {
-            indHolderVec_[i] = strlen(v->getValue(i));
-        }
         size = 257;
         data = v->getArrayCharData();
+        ind = v->getArrayIndicators();
+        arraySize_ = v->getCurrentInsertedElementCount();
         break;
     }
     case x_mnsocistring:
@@ -226,7 +189,6 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
 
             //std::size_t maxSize = 0;
             std::size_t const vecSize = v.size();
-            prepare_indicators(vecSize);
 
             //maxSize = 257 + 1;
             //must have size + 1 for the vector iteration!!
@@ -237,48 +199,17 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             char *pos = buf_;
             for (std::size_t i = 0; i != vecSize; ++i)
             {
-                indHolderVec_[i] = strlen(v[i].m_ptrCharData);
-                strncpy(pos, v[i].m_ptrCharData, indHolderVec_[i]);
+                ind[i] = strlen(v[i].m_ptrCharData);
+                strncpy(pos, v[i].m_ptrCharData, ind[i]);
                 pos += 256;
             }
 
             data = buf_;
             size = static_cast<SQLINTEGER>(256);
+            arraySize_ = vecSize;
         }
         break;                          
-    //case x_stdtm:
-    //    {
-    //        std::vector<std::tm> *vp
-    //            = static_cast<std::vector<std::tm> *>(data);
-
-    //        prepare_indicators(vp->size());
-
-    //        buf_ = new char[sizeof(TIMESTAMP_STRUCT) * vp->size()];
-
-    //        sqlType = SQL_TYPE_TIMESTAMP;
-    //        cType = SQL_C_TYPE_TIMESTAMP;
-    //        data = buf_;
-    //        //size = 19; // This number is not the size in bytes, but the number
-    //        //          // of characters in the date if it was written out
-    //        //          // yyyy-mm-dd hh:mm:ss
-    //        if (statement_.session_.get_database_product() == soci::odbc_session_backend::prod_oracle)
-    //        {
-    //             // oracle date columns require the pure 16 byte length to work as expected
-    //            size = sizeof(TIMESTAMP_STRUCT);
-    //             // my sql with SQL_DATETIME for values less than 1970
-    //            if (statement_.session_.get_database_product() == soci::odbc_session_backend::prod_mysql)
-    //            {
-    //                sqlType = SQL_DATETIME;
-    //            }
-    //        }
-    //        else
-    //        {
-    //            size = 19; // This number is not the size in bytes, but the number
-    //             // of characters in the date if it was written out
-    //                 // yyyy-mm-dd hh:mm:ss
-    //        }
-    //    }
-    //    break;
+   
     case x_odbctimestamp:
     {
         sqlType = SQL_TYPE_TIMESTAMP;
@@ -286,8 +217,8 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
         size = sizeof(TIMESTAMP_STRUCT);
         std::vector<TIMESTAMP_STRUCT> *vp = static_cast<std::vector<TIMESTAMP_STRUCT> *>(data);
         std::vector<TIMESTAMP_STRUCT> &v(*vp);
-        prepare_indicators(v.size());
         data = &v[0];
+        arraySize_ = v.size();
     }
     break;
 
@@ -297,9 +228,10 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
     }
 
     colSize_ = size;
+    ind_ = ind;
 }
 
-void odbc_vector_use_type_backend::bind_helper(int &position, void *data, exchange_type type)
+void odbc_vector_use_type_backend::bind_helper(int &position, void *data, exchange_type type, SQLLEN* ind)
 {
     data_ = data; // for future reference
     type_ = type; // for future reference
@@ -308,14 +240,13 @@ void odbc_vector_use_type_backend::bind_helper(int &position, void *data, exchan
     SQLSMALLINT cType;
     SQLUINTEGER size;
 
-    prepare_for_bind(data, size, sqlType, cType);
+    prepare_for_bind(data, size, sqlType, cType, ind);
 
-    SQLULEN const arraySize = static_cast<SQLULEN>(indHolderVec_.size());
-    SQLSetStmtAttr(statement_.hstmt_, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER)arraySize, 0);
+    SQLSetStmtAttr(statement_.hstmt_, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER)arraySize_, 0);
 
     SQLRETURN rc = SQLBindParameter(statement_.hstmt_, static_cast<SQLUSMALLINT>(position++),
                                     SQL_PARAM_INPUT, cType, sqlType, size, 0,
-                                    static_cast<SQLPOINTER>(data), size, indHolders_);
+                                    static_cast<SQLPOINTER>(data), size, ind_);
 
     if (is_odbc_error(rc))
     {
@@ -325,124 +256,13 @@ void odbc_vector_use_type_backend::bind_helper(int &position, void *data, exchan
 }
 
 void odbc_vector_use_type_backend::bind_by_pos(int &position,
-        void *data, exchange_type type)
+    void *data, exchange_type type, SQLLEN* ind)
 {
-    if (statement_.boundByName_)
-    {
-        throw soci_error(
-         "Binding for use elements must be either by position or by name.");
-    }
-
-    bind_helper(position, data, type);
-
-    statement_.boundByPos_ = true;
+    bind_helper(position, data, type, ind);
 }
 
-void odbc_vector_use_type_backend::bind_by_name(
-    std::string const &name, void *data, exchange_type type)
+void odbc_vector_use_type_backend::pre_use()
 {
-    if (statement_.boundByPos_)
-    {
-        throw soci_error(
-         "Binding for use elements must be either by position or by name.");
-    }
-
-    int position = -1;
-    int count = 1;
-
-    for (std::vector<std::string>::iterator it = statement_.names_.begin();
-         it != statement_.names_.end(); ++it)
-    {
-        if (*it == name)
-        {
-            position = count;
-            break;
-        }
-        count++;
-    }
-
-    if (position != -1)
-    {
-        bind_helper(position, data, type);
-    }
-    else
-    {
-        std::ostringstream ss;
-        ss << "Unable to find name '" << name << "' to bind to";
-        throw soci_error(ss.str().c_str());
-    }
-
-    statement_.boundByName_ = true;
-}
-
-void odbc_vector_use_type_backend::pre_use(indicator const *ind)
-{
-    // first deal with data
-    //if (type_ == x_stdtm)
-    //{
-    //    std::vector<std::tm> *vp
-    //         = static_cast<std::vector<std::tm> *>(data_);
-
-    //    std::vector<std::tm> &v(*vp);
-
-    //    char *pos = buf_;
-    //    std::size_t const vsize = v.size();
-    //    for (std::size_t i = 0; i != vsize; ++i)
-    //    {
-    //        std::tm t = v[i];
-    //        TIMESTAMP_STRUCT * ts = reinterpret_cast<TIMESTAMP_STRUCT*>(pos);
-
-    //        ts->year = static_cast<SQLSMALLINT>(t.tm_year + 1900);
-    //        ts->month = static_cast<SQLUSMALLINT>(t.tm_mon + 1);
-    //        ts->day = static_cast<SQLUSMALLINT>(t.tm_mday);
-    //        ts->hour = static_cast<SQLUSMALLINT>(t.tm_hour);
-    //        ts->minute = static_cast<SQLUSMALLINT>(t.tm_min);
-    //        ts->second = static_cast<SQLUSMALLINT>(t.tm_sec);
-    //        ts->fraction = 0;
-    //        pos += sizeof(TIMESTAMP_STRUCT);
-    //    }
-    //}
-    //else if (type_ == x_long_long && use_string_for_bigint())
-    //{
-    //    std::vector<long long> *vp
-    //         = static_cast<std::vector<long long> *>(data_);
-    //    std::vector<long long> &v(*vp);
-
-    //    char *pos = buf_;
-    //    std::size_t const vsize = v.size();
-    //    for (std::size_t i = 0; i != vsize; ++i)
-    //    {
-    //        snprintf(pos, max_bigint_length, "%" LL_FMT_FLAGS "d", v[i]);
-    //        pos += max_bigint_length;
-    //    }
-    //}
-    //else if (type_ == x_unsigned_long_long && use_string_for_bigint())
-    //{
-    //    std::vector<unsigned long long> *vp
-    //         = static_cast<std::vector<unsigned long long> *>(data_);
-    //    std::vector<unsigned long long> &v(*vp);
-
-    //    char *pos = buf_;
-    //    std::size_t const vsize = v.size();
-    //    for (std::size_t i = 0; i != vsize; ++i)
-    //    {
-    //        snprintf(pos, max_bigint_length, "%" LL_FMT_FLAGS "u", v[i]);
-    //        pos += max_bigint_length;
-    //    }
-    //}
-
-    // then handle indicators
-    if (ind != NULL)
-    {
-        std::size_t const vsize = size();
-        for (std::size_t i = 0; i != vsize; ++i, ++ind)
-        {
-            if (*ind == i_null)
-            {
-                indHolderVec_[i] = SQL_NULL_DATA; // null
-            }
-        }
-    }
 }
 
 std::size_t odbc_vector_use_type_backend::size()

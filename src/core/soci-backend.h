@@ -15,6 +15,13 @@
 #include <map>
 #include <string>
 
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#include "soci-platform.h"
+#include <windows.h>
+#endif
+
+#include <sqltypes.h>
+
 namespace soci
 {
 
@@ -23,9 +30,6 @@ enum data_type
 {
     dt_string, dt_string_mn_256, dt_date, dt_double, dt_integer, dt_long_long, dt_unsigned_long_long, dt_timestamp_struct
 };
-
-// the enum type for indicator variables
-enum indicator { i_ok, i_null, i_truncated };
 
 class session;
 class column_properties;
@@ -67,10 +71,12 @@ public:
     standard_into_type_backend() {}
     virtual ~standard_into_type_backend() {}
 
-    virtual void define_by_pos(int& position, void* data, exchange_type type) = 0;
+    virtual void define_by_pos(int& position, void* data, exchange_type type, SQLLEN* ind) = 0;
 
     virtual void pre_fetch() = 0;
-    virtual void post_fetch(bool gotData, bool calledFromFetch, indicator* ind) = 0;
+    virtual void post_fetch(bool gotData, bool calledFromFetch) = 0;
+
+    virtual void copyIndicatorPointer(SQLLEN* ind) = 0;
 
     virtual void clean_up() = 0;
 
@@ -87,10 +93,10 @@ public:
     vector_into_type_backend() {}
     virtual ~vector_into_type_backend() {}
 
-    virtual void define_by_pos(int& position, void* data, exchange_type type) = 0;
+    virtual void define_by_pos(int& position, void* data, exchange_type type, SQLLEN* indHolders) = 0;
 
     virtual void pre_fetch() = 0;
-    virtual void post_fetch(bool gotData, indicator* ind) = 0;
+    virtual void post_fetch(bool gotData) = 0;
 
     virtual void resize(std::size_t sz) = 0;
     virtual std::size_t size() = 0;
@@ -111,15 +117,13 @@ public:
     standard_use_type_backend() {}
     virtual ~standard_use_type_backend() {}
 
-    virtual void bind_by_pos(int& position, void* data,
-        exchange_type type, bool readOnly) = 0;
-    virtual void bind_by_name(std::string const& name,
-        void* data, exchange_type type, bool readOnly) = 0;
+    virtual void bind_by_pos(int& position, void* data, exchange_type type, bool readOnly, SQLLEN* ind) = 0;
 
-    virtual void pre_use(indicator const* ind) = 0;
-    virtual void post_use(bool gotData, indicator * ind) = 0;
+    virtual void pre_use() = 0;
 
     virtual void clean_up() = 0;
+
+    virtual void copyIndicatorPointer(SQLLEN* ind) = 0;
 
 private:
     // noncopyable
@@ -133,11 +137,9 @@ public:
     vector_use_type_backend() {}
     virtual ~vector_use_type_backend() {}
 
-    virtual void bind_by_pos(int& position, void* data, exchange_type type) = 0;
-    virtual void bind_by_name(std::string const& name,
-        void* data, exchange_type type) = 0;
+    virtual void bind_by_pos(int& position, void* data, exchange_type type, SQLLEN* ind) = 0;
 
-    virtual void pre_use(indicator const* ind) = 0;
+    virtual void pre_use() = 0;
 
     virtual std::size_t size() = 0;
 
@@ -170,7 +172,7 @@ public:
         ef_error
     };
 
-    virtual int execute(int iFetchSize, mn_odbc_error_info& err_info) = 0;
+    virtual int execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize = -1) = 0;
     virtual int fetch(int number, mn_odbc_error_info& err_info) = 0;
 
     virtual long long get_affected_rows() = 0;
@@ -240,14 +242,14 @@ public:
     // versions of them in the derived classes. However every backend should
     // define at least one of them to allow the code using auto-generated values
     // to work.
-    virtual bool get_next_sequence_value(session&, std::string const&, long&)
-    {
-        return false;
-    }
-    virtual bool get_last_insert_id(session&, std::string const&, long&)
-    {
-        return false;
-    }
+    //virtual bool get_next_sequence_value(session&, std::string const&, long&, SQLLEN* )
+    //{
+    //    return false;
+    //}
+    //virtual bool get_last_insert_id(session&, std::string const&, long&, SQLLEN* )
+    //{
+    //    return false;
+    //}
 
     virtual std::string get_backend_name() const = 0;
 

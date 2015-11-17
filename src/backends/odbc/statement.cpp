@@ -26,7 +26,7 @@ using namespace soci::details;
 
 odbc_statement_backend::odbc_statement_backend(odbc_session_backend &session)
     : session_(session), hstmt_(0), numRowsFetched_(0),
-      hasVectorUseElements_(false), boundByName_(false), boundByPos_(false),
+      hasVectorUseElements_(false), 
       rowsAffected_(-1LL)
 {
 }
@@ -60,83 +60,7 @@ void odbc_statement_backend::clean_up()
 void odbc_statement_backend::prepare(std::string const & query,
     statement_type /* eType */)
 {
-    // rewrite the query by transforming all named parameters into
-    // the ODBC numbers ones (:abc -> $1, etc.)
-
-    enum { eNormal, eInQuotes, eInName, eInAccessDate } state = eNormal;
-
-    std::string name;
-    query_.reserve(query.length());
-
-    for (std::string::const_iterator it = query.begin(), end = query.end();
-         it != end; ++it)
-    {
-        switch (state)
-        {
-        case eNormal:
-            if (*it == '\'')
-            {
-                query_ += *it;
-                state = eInQuotes;
-            }
-            else if (*it == '#')
-            {
-                query_ += *it;
-                state = eInAccessDate;
-            }
-            else if (*it == ':')
-            {
-                state = eInName;
-            }
-            else // regular character, stay in the same state
-            {
-                query_ += *it;
-            }
-            break;
-        case eInQuotes:
-            if (*it == '\'')
-            {
-                query_ += *it;
-                state = eNormal;
-            }
-            else // regular quoted character
-            {
-                query_ += *it;
-            }
-            break;
-        case eInName:
-            if (std::isalnum(*it) || *it == '_')
-            {
-                name += *it;
-            }
-            else // end of name
-            {
-                names_.push_back(name);
-                name.clear();
-                query_ += "?";
-                query_ += *it;
-                state = eNormal;
-            }
-            break;
-        case eInAccessDate:
-            if (*it == '#')
-            {
-                query_ += *it;
-                state = eNormal;
-            }
-            else // regular quoted character
-            {
-                query_ += *it;
-            }
-            break;
-        }
-    }
-
-    if (state == eInName)
-    {
-        names_.push_back(name);
-        query_ += "?";
-    }
+    query_ = query;
 
     SQLRETURN rc = SQLPrepare(hstmt_, (SQLCHAR*)query_.c_str(), (SQLINTEGER)query_.size());
     if (is_odbc_error(rc))
@@ -147,7 +71,7 @@ void odbc_statement_backend::prepare(std::string const & query,
 }
 
 int
-odbc_statement_backend::execute(int iFetchSize, mn_odbc_error_info& err_info)
+odbc_statement_backend::execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize)
 {
     // Store the number of rows processed by this call.
     SQLULEN rows_processed = 0;
@@ -224,6 +148,17 @@ odbc_statement_backend::execute(int iFetchSize, mn_odbc_error_info& err_info)
     SQLSMALLINT colCount;
     SQLNumResultCols(hstmt_, &colCount);
 
+    //check if colCount matches the into buffer!!
+    if (colCount != iIntoSize)
+    {
+        err_info.native_error_code_ = -1;
+        err_info.odbc_error_message_ = "SOCI Into Buffer does not match the size of the resultset colum count";
+        err_info.odbc_func_name_ = "SQLRowCount";
+        err_info.odbc_func_returnval_ = -1;
+
+        return -1;
+    }
+
     if (iFetchSize > 0 && colCount > 0)
     {
         return fetch(iFetchSize, err_info);
@@ -246,7 +181,7 @@ odbc_statement_backend::fetch(int number, mn_odbc_error_info& err_info)
 
     if (SQL_NO_DATA == rc)
     {
-        return numRowsFetched_;
+        return (int)numRowsFetched_;
     }
 
     if (is_odbc_error(rc))
@@ -262,7 +197,7 @@ odbc_statement_backend::fetch(int number, mn_odbc_error_info& err_info)
         return -1;
     }
 
-    return numRowsFetched_;
+    return (int)numRowsFetched_;
 }
 
 long long odbc_statement_backend::get_affected_rows()
@@ -272,7 +207,7 @@ long long odbc_statement_backend::get_affected_rows()
 
 int odbc_statement_backend::get_number_of_rows()
 {
-    return numRowsFetched_;
+    return (int)numRowsFetched_;
 }
 
 std::string odbc_statement_backend::rewrite_for_procedure_call(
@@ -290,17 +225,14 @@ int odbc_statement_backend::prepare_for_describe()
 
 bool odbc_statement_backend::describe_column(int colNum, column_properties& colProperties, mn_odbc_error_info& err_info)
 {
-    SQLCHAR colNameBuffer[2048];
     SQLSMALLINT colNameBufferOverflow;
     SQLSMALLINT dataType;
-    SQLULEN colSize;
-    SQLSMALLINT decDigits;
     SQLSMALLINT isNullable;
 
     SQLRETURN rc = SQLDescribeCol(hstmt_, static_cast<SQLUSMALLINT>(colNum),
-                                  colNameBuffer, 2048,
+                                  colProperties.get_name(), 2048,
                                   &colNameBufferOverflow, &dataType,
-                                  &colSize, &decDigits, &isNullable);
+                                  &colProperties.get_column_size(), &colProperties.get_decimal_digits(), &isNullable);
 
     if (is_odbc_error(rc))
     {
@@ -315,11 +247,7 @@ bool odbc_statement_backend::describe_column(int colNum, column_properties& colP
         return false;
     }
 
-    colProperties.set_column_size(colSize);
-    colProperties.set_decimal_digits(decDigits);
     colProperties.set_is_nullable(isNullable == SQL_NULLABLE);
-
-    colProperties.set_name(reinterpret_cast<char const *>(colNameBuffer));
 
     data_type type;
 
@@ -333,11 +261,11 @@ bool odbc_statement_backend::describe_column(int colNum, column_properties& colP
     case SQL_NUMERIC:
     case SQL_DECIMAL:
     { //
-        if (decDigits > 0)
+        if (colProperties.get_decimal_digits() > 0)
         {
             type = dt_double;
         }
-        else if (colSize <= std::numeric_limits<int>::digits10)
+        else if (colProperties.get_column_size() <= std::numeric_limits<int>::digits10)
         {
             type = dt_integer;
         }

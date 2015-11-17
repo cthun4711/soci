@@ -17,18 +17,19 @@ using namespace soci;
 using namespace details;
 
 column_properties::column_properties()
-    : name_(""), dataType_(dt_string), colSize_(0), decDigits_(0), isNullable_(false)
+    : dataType_(dt_string), colSize_(0), decDigits_(0), isNullable_(false)
 {
 }
 
 column_properties::column_properties(const column_properties& obj)
-    : name_(obj.name_), dataType_(obj.dataType_), colSize_(obj.colSize_), decDigits_(obj.decDigits_), isNullable_(obj.isNullable_)
 {
+    *this = obj;
 }
 
-column_properties& column_properties::operator = (const column_properties& obj)
+column_properties&
+column_properties::operator = (const column_properties& obj)
 {
-    name_ = obj.name_;
+    strcpy((char*)&name_[0], (char*)&obj.name_[0]);
     dataType_ = obj.dataType_;
     colSize_ = obj.colSize_;
     decDigits_ = obj.decDigits_;
@@ -37,9 +38,20 @@ column_properties& column_properties::operator = (const column_properties& obj)
     return *this;
 }
 
+SQLCHAR*            column_properties::get_name()            { return &name_[0]; }
+data_type           column_properties::get_data_type() const { return dataType_; }
+SQLULEN&            column_properties::get_column_size()     { return colSize_; }
+SQLSMALLINT&        column_properties::get_decimal_digits()  { return decDigits_; }
+bool                column_properties::get_is_nullable() const { return isNullable_; }
+
+void column_properties::set_name(char* name) { strcpy((char*)&name_[0], name); }
+void column_properties::set_column_size(SQLULEN colSize) { colSize_ = colSize; }
+void column_properties::set_decimal_digits(SQLSMALLINT decDigits) { decDigits_ = decDigits; }
+void column_properties::set_data_type(data_type dataType)  { dataType_ = dataType; }
+void column_properties::set_is_nullable(bool bIsNullable) { isNullable_ = bIsNullable; }
+
 row::row()
-    : uppercaseColumnNames_(false)
-    , currentPos_(0)
+    : currentPos_(0)
     , row_size_(0)
 {}
 
@@ -48,35 +60,9 @@ row::~row()
     clean_up();
 }
 
-void row::uppercase_column_names(bool forceToUpper)
-{
-    uppercaseColumnNames_ = forceToUpper;
-}
-
-void row::add_properties(column_properties const &cp)
+void row::add_properties(column_properties* cp)
 {
     columns_.push_back(cp);
-
-    std::string columnName;
-    std::string const & originalName = cp.get_name();
-    if (uppercaseColumnNames_)
-    {
-        for (std::size_t i = 0; i != originalName.size(); ++i)
-        {
-            columnName.push_back(static_cast<char>(std::toupper(originalName[i])));
-        }
-
-        // rewrite the column name in the column_properties object
-        // as well to retain consistent views
-
-        columns_[columns_.size() - 1].set_name(columnName);
-    }
-    else
-    {
-        columnName = originalName;
-    }
-
-    index_[columnName] = columns_.size() - 1;
 }
 
 const std::size_t& row::size() const
@@ -92,51 +78,27 @@ void row::clean_up()
     {
         delete holders_[i];
         delete indicators_[i];
+        delete columns_[i];
     }
 
     columns_.clear();
     holders_.clear();
     indicators_.clear();
-    index_.clear();
     row_size_ = 0;
 }
 
-indicator row::get_indicator(const std::size_t& pos) const
+SQLLEN row::get_indicator(const std::size_t& pos) const
 {
-    assert(indicators_.size() >= static_cast<std::size_t>(pos + 1));
     return *indicators_[pos];
-}
-
-indicator row::get_indicator(std::string const &name) const
-{
-    return get_indicator(find_column(name));
 }
 
 data_type row::getDatatypeForColumn(const std::size_t& pos) const
 {
-    return columns_[pos].get_data_type();
+    return columns_[pos]->get_data_type();
 }
 
-column_properties const & row::get_properties(const std::size_t& pos) const
+column_properties* row::get_properties(const std::size_t& pos) const
 {
-    assert(columns_.size() >= pos + 1);
     return columns_[pos];
 }
 
-column_properties const & row::get_properties(std::string const &name) const
-{
-    return get_properties(find_column(name));
-}
-
-std::size_t row::find_column(std::string const &name) const
-{
-    std::map<std::string, std::size_t>::const_iterator it = index_.find(name);
-    if (it == index_.end())
-    {
-        std::ostringstream msg;
-        msg << "Column '" << name << "' not found";
-        throw soci_error(msg.str());
-    }
-
-    return it->second;
-}

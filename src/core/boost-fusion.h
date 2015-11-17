@@ -46,14 +46,14 @@ struct type_conversion;
     { \
         typedef values base_type; \
      \
-        static void from_base(base_type const & in, indicator /*ind*/, Seq & out) \
+        static void from_base(base_type const & in, SQLLEN /*ind*/, Seq & out) \
         { \
             in \
                 BOOST_PP_REPEAT(k, SOCI_READ_FROM_BASE, BOOST_PP_EMPTY) \
             ; \
         } \
      \
-        static void to_base(Seq & in, base_type & out, indicator & /*ind*/) \
+        static void to_base(Seq & in, base_type & out, SQLLEN & /*ind*/) \
         { \
             out \
                 BOOST_PP_REPEAT(k, SOCI_READ_TO_BASE, BOOST_PP_EMPTY) \
@@ -83,12 +83,12 @@ private:
     typedef detail::type_conversion<T, size::value> converter;
 
 public:
-    static void from_base(base_type const & in, indicator ind, T& out)
+    static void from_base(base_type const & in, SQLLEN ind, T& out)
     {
         converter::from_base( in, ind, out );
     }
 
-    static void to_base(T& in, base_type & out, indicator & ind)
+    static void to_base(T& in, base_type & out, SQLLEN & ind)
     {
         converter::to_base( in, out, ind );
     }

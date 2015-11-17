@@ -41,7 +41,7 @@ public:
     {}
 
     // we ignore the possibility to have the whole values as NULL
-    use_type(values & v, indicator /*ind*/, std::string const & /*name*/ = std::string())
+    use_type(values & v, SQLLEN /*ind*/, std::string const & /*name*/ = std::string())
         : v_(v)
     {}
 
@@ -89,7 +89,7 @@ public:
         : into_type<row>(v.get_row()), v_(v)
     {}
     
-    into_type(values & v, indicator & ind)
+    into_type(values & v, SQLLEN & ind)
         : into_type<row>(v.get_row(), ind), v_(v)
     {}
 

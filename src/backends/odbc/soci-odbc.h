@@ -32,6 +32,8 @@
 #include <sqlext.h> // ODBC
 #include <string.h> // strcpy()
 
+#pragma warning (disable : 4512)
+
 namespace soci
 {
 
@@ -79,11 +81,12 @@ struct odbc_standard_into_type_backend : details::standard_into_type_backend,
     {}
 
     virtual void define_by_pos(int &position,
-        void *data, details::exchange_type type);
+        void *data, details::exchange_type type, SQLLEN* ind);
 
     virtual void pre_fetch();
-    virtual void post_fetch(bool gotData, bool calledFromFetch,
-        indicator *ind);
+    virtual void post_fetch(bool gotData, bool calledFromFetch);
+
+    virtual void copyIndicatorPointer(SQLLEN* ind) { ind_ = ind; }
 
     virtual void clean_up();
 
@@ -92,34 +95,27 @@ struct odbc_standard_into_type_backend : details::standard_into_type_backend,
     details::exchange_type type_;
     int position_;
     SQLSMALLINT odbcType_;
-    SQLLEN valueLen_;
+    SQLLEN* ind_;
 };
 
 struct odbc_vector_into_type_backend : details::vector_into_type_backend,
                                        private odbc_standard_type_backend_base
 {
     odbc_vector_into_type_backend(odbc_statement_backend &st)
-        : odbc_standard_type_backend_base(st), indHolders_(NULL),
+        : odbc_standard_type_backend_base(st),
           data_(NULL), buf_(NULL) {}
 
     virtual void define_by_pos(int &position,
-        void *data, details::exchange_type type);
+        void *data, details::exchange_type type, SQLLEN* indHolders);
 
     virtual void pre_fetch();
-    virtual void post_fetch(bool gotData, indicator *ind);
+    virtual void post_fetch(bool gotData);
 
-    virtual void resize(std::size_t sz);
+    virtual void resize(std::size_t /*sz*/);
     virtual std::size_t size();
 
     virtual void clean_up();
 
-    // helper function for preparing indicators
-    // (as part of the define_by_pos)
-    void prepare_indicators(std::size_t size);
-
-
-    SQLLEN *indHolders_;
-    std::vector<SQLLEN> indHolderVec_;
     void *data_;
     char *buf_;              // generic buffer
     details::exchange_type type_;
@@ -135,14 +131,13 @@ struct odbc_standard_use_type_backend : details::standard_use_type_backend,
           position_(-1), data_(0), buf_(0), indHolder_(0) {}
 
     virtual void bind_by_pos(int &position,
-        void *data, details::exchange_type type, bool readOnly);
-    virtual void bind_by_name(std::string const &name,
-        void *data, details::exchange_type type, bool readOnly);
+        void *data, details::exchange_type type, bool readOnly, SQLLEN* ind);
 
-    virtual void pre_use(indicator const *ind);
-    virtual void post_use(bool gotData, indicator *ind);
+    virtual void pre_use();
 
     virtual void clean_up();
+
+    virtual void copyIndicatorPointer(SQLLEN* ind) { indHolder_ = ind; }
 
     // Return the pointer to the buffer containing data to be used by ODBC.
     // This can be either data_ itself or buf_, that is allocated by this
@@ -156,40 +151,31 @@ struct odbc_standard_use_type_backend : details::standard_use_type_backend,
     void *data_;
     details::exchange_type type_;
     char *buf_;
-    SQLLEN indHolder_;
+    SQLLEN* indHolder_;
 };
 
 struct odbc_vector_use_type_backend : details::vector_use_type_backend,
                                       private odbc_standard_type_backend_base
 {
     odbc_vector_use_type_backend(odbc_statement_backend &st)
-        : odbc_standard_type_backend_base(st), indHolders_(NULL),
-          data_(NULL), buf_(NULL) {}
-
-    // helper function for preparing indicators
-    // (as part of the define_by_pos)
-    void prepare_indicators(std::size_t size);
+        : odbc_standard_type_backend_base(st), data_(NULL), ind_(NULL), buf_(NULL), arraySize_(0){}
 
     // common part for bind_by_pos and bind_by_name
-    void prepare_for_bind(void *&data, SQLUINTEGER &size, SQLSMALLINT &sqlType, SQLSMALLINT &cType);
-    void bind_helper(int &position,
-        void *data, details::exchange_type type);
+    void prepare_for_bind(void *&data, SQLUINTEGER &size, SQLSMALLINT &sqlType, SQLSMALLINT &cType, SQLLEN* ind);
+    void bind_helper(int &position, void *data, details::exchange_type type, SQLLEN* ind);
 
     virtual void bind_by_pos(int &position,
-        void *data, details::exchange_type type);
-    virtual void bind_by_name(std::string const &name,
-        void *data, details::exchange_type type);
+        void *data, details::exchange_type type, SQLLEN* ind);
 
-    virtual void pre_use(indicator const *ind);
+    virtual void pre_use();
 
     virtual std::size_t size();
 
     virtual void clean_up();
 
-
-    SQLLEN *indHolders_;
-    std::vector<SQLLEN> indHolderVec_;
     void *data_;
+    SQLLEN* ind_;
+    std::size_t arraySize_;
     details::exchange_type type_;
     char *buf_;              // generic buffer
     std::size_t colSize_;    // size of the string column (used for strings)
@@ -208,7 +194,7 @@ struct odbc_statement_backend : details::statement_backend
     virtual void prepare(std::string const &query,
         details::statement_type eType);
 
-    virtual int execute(int iFetchSize, mn_odbc_error_info& err_info);
+    virtual int execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize = -1);
     virtual int fetch(int number, mn_odbc_error_info& err_info);
 
     virtual long long get_affected_rows();
@@ -231,14 +217,10 @@ struct odbc_statement_backend : details::statement_backend
     SQLHSTMT hstmt_;
     SQLULEN numRowsFetched_;
     bool hasVectorUseElements_;
-    bool boundByName_;
-    bool boundByPos_;
 
     long long rowsAffected_; // number of rows affected by the last operation
 
     std::string query_;
-    std::vector<std::string> names_; // list of names for named binds
-
 };
 
 struct odbc_rowid_backend : details::rowid_backend
@@ -275,10 +257,10 @@ struct odbc_session_backend : details::session_backend
     virtual void commit();
     virtual void rollback();
 
-    virtual bool get_next_sequence_value(session & s,
-        std::string const & sequence, long & value);
-    virtual bool get_last_insert_id(session & s,
-        std::string const & table, long & value);
+    //virtual bool get_next_sequence_value(session & s,
+    //    std::string const & sequence, long & value, SQLLEN* ind);
+    //virtual bool get_last_insert_id(session & s,
+    //    std::string const & table, long & value, SQLLEN* ind);
 
     virtual std::string get_backend_name() const { return "odbc"; }
 

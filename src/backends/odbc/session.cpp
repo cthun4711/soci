@@ -128,87 +128,87 @@ void odbc_session_backend::rollback()
     reset_transaction();
 }
 
-bool odbc_session_backend::get_next_sequence_value(
-    session & s, std::string const & sequence, long & value)
-{
-    std::string query;
+//bool odbc_session_backend::get_next_sequence_value(
+//    session & s, std::string const & sequence, long & value, SQLLEN* ind)
+//{
+//    std::string query;
+//
+//    switch ( get_database_product() )
+//    {
+//        case prod_firebird:
+//            query = "select next value for " + sequence + " from rdb$database";
+//            break;
+//
+//        case prod_oracle:
+//            query = "select " + sequence + ".nextval from dual";
+//            break;
+//
+//        case prod_postgresql:
+//            query = "select nextval('" + sequence + "')";
+//            break;
+//
+//        case prod_mssql:
+//        case prod_mysql:
+//        case prod_sqlite:
+//            // These RDBMS implement get_last_insert_id() instead.
+//            return false;
+//
+//        case prod_unknown:
+//            // For this one we can't do anything at all.
+//            return false;
+//
+//        case prod_uninitialized:
+//            // This is not supposed to happen at all but still cover this case
+//            // here to avoid gcc warnings about unhandled enum values in a
+//            // switch.
+//            return false;
+//    }
+//
+//    s << query, into(value, *ind);
+//
+//    return true;
+//}
 
-    switch ( get_database_product() )
-    {
-        case prod_firebird:
-            query = "select next value for " + sequence + " from rdb$database";
-            break;
-
-        case prod_oracle:
-            query = "select " + sequence + ".nextval from dual";
-            break;
-
-        case prod_postgresql:
-            query = "select nextval('" + sequence + "')";
-            break;
-
-        case prod_mssql:
-        case prod_mysql:
-        case prod_sqlite:
-            // These RDBMS implement get_last_insert_id() instead.
-            return false;
-
-        case prod_unknown:
-            // For this one we can't do anything at all.
-            return false;
-
-        case prod_uninitialized:
-            // This is not supposed to happen at all but still cover this case
-            // here to avoid gcc warnings about unhandled enum values in a
-            // switch.
-            return false;
-    }
-
-    s << query, into(value);
-
-    return true;
-}
-
-bool odbc_session_backend::get_last_insert_id(
-    session & s, std::string const & table, long & value)
-{
-    std::string query;
-
-    switch ( get_database_product() )
-    {
-        case prod_mssql:
-            query = "select ident_current('" + table + "')";
-            break;
-
-        case prod_mysql:
-            query = "select last_insert_id()";
-            break;
-
-        case prod_sqlite:
-            query = "select last_insert_rowid()";
-            break;
-
-        case prod_firebird:
-        case prod_oracle:
-        case prod_postgresql:
-            // For these RDBMS get_next_sequence_value() should have been used.
-            return false;
-
-
-        case prod_unknown:
-            // For this one we can't do anything at all.
-            return false;
-
-        case prod_uninitialized:
-            // As above, this is not supposed to happen but put it here to
-            // mollify gcc.
-            return false;
-    }
-
-    s << query, into(value);
-
-    return true;
-}
+//bool odbc_session_backend::get_last_insert_id(
+//    session & s, std::string const & table, long & value, SQLLEN* ind)
+//{
+//    std::string query;
+//
+//    switch ( get_database_product() )
+//    {
+//        case prod_mssql:
+//            query = "select ident_current('" + table + "')";
+//            break;
+//
+//        case prod_mysql:
+//            query = "select last_insert_id()";
+//            break;
+//
+//        case prod_sqlite:
+//            query = "select last_insert_rowid()";
+//            break;
+//
+//        case prod_firebird:
+//        case prod_oracle:
+//        case prod_postgresql:
+//            // For these RDBMS get_next_sequence_value() should have been used.
+//            return false;
+//
+//
+//        case prod_unknown:
+//            // For this one we can't do anything at all.
+//            return false;
+//
+//        case prod_uninitialized:
+//            // As above, this is not supposed to happen but put it here to
+//            // mollify gcc.
+//            return false;
+//    }
+//
+//    s << query, into(value, *ind);
+//
+//    return true;
+//}
 
 void odbc_session_backend::reset_transaction()
 {

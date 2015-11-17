@@ -87,14 +87,14 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         buf_ = new char[size];
         buf_[0] = *static_cast<char*>(data_);
         buf_[1] = '\0';
-        indHolder_ = SQL_NTS;
+        *indHolder_ = SQL_NTS;
         break;
     case x_mnsocistring:
         sqlType = SQL_VARCHAR;
         cType = SQL_C_CHAR;
         size = 256;
         buf_ = &(((MNSociString*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
-        indHolder_ = SQL_NTS;
+        *indHolder_ = SQL_NTS;
         break;
     case x_stdstring:
     {
@@ -105,7 +105,7 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         buf_ = new char[size+1];
         memcpy(buf_, s->c_str(), size);
         buf_[size++] = '\0';
-        indHolder_ = SQL_NTS;
+        *indHolder_ = SQL_NTS;
     }
     break;
     //case x_stdtm:
@@ -165,59 +165,15 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
 }
 
 void odbc_standard_use_type_backend::bind_by_pos(
-    int &position, void *data, exchange_type type, bool /* readOnly */)
+    int &position, void *data, exchange_type type, bool /* readOnly */, SQLLEN* ind)
 {
-    if (statement_.boundByName_)
-    {
-        throw soci_error(
-         "Binding for use elements must be either by position or by name.");
-    }
-
     position_ = position++;
     data_ = data;
     type_ = type;
-
-    statement_.boundByPos_ = true;
+    indHolder_ = ind;
 }
 
-void odbc_standard_use_type_backend::bind_by_name(
-    std::string const &name, void *data, exchange_type type, bool /* readOnly */)
-{
-    if (statement_.boundByPos_)
-    {
-        throw soci_error(
-         "Binding for use elements must be either by position or by name.");
-    }
-
-    int position = -1;
-    int count = 1;
-
-    for (std::vector<std::string>::iterator it = statement_.names_.begin();
-         it != statement_.names_.end(); ++it)
-    {
-        if (*it == name)
-        {
-            position = count;
-            break;
-        }
-        count++;
-    }
-
-    if (position == -1)
-    {
-        std::ostringstream ss;
-        ss << "Unable to find name '" << name << "' to bind to";
-        throw soci_error(ss.str().c_str());
-    }
-
-    position_ = position;
-    data_ = data;
-    type_ = type;
-
-    statement_.boundByName_ = true;
-}
-
-void odbc_standard_use_type_backend::pre_use(indicator const *ind)
+void odbc_standard_use_type_backend::pre_use()
 {
     // first deal with data
     SQLSMALLINT sqlType;
@@ -230,40 +186,12 @@ void odbc_standard_use_type_backend::pre_use(indicator const *ind)
                                     static_cast<SQLUSMALLINT>(position_),
                                     SQL_PARAM_INPUT,
                                     cType, sqlType, size, 0,
-                                    sqlData, 0, &indHolder_);
+                                    sqlData, 0, indHolder_);
 
     if (is_odbc_error(rc))
     {
         throw odbc_soci_error(SQL_HANDLE_STMT, statement_.hstmt_,
                                 "Binding");
-    }
-
-    // then handle indicators
-    if (ind != NULL && *ind == i_null)
-    {
-        indHolder_ = SQL_NULL_DATA; // null
-    }
-}
-
-void odbc_standard_use_type_backend::post_use(bool gotData, indicator *ind)
-{
-    if (ind != NULL)
-    {
-        if (gotData)
-        {
-            if (indHolder_ == 0)
-            {
-                *ind = i_ok;
-            }
-            else if (indHolder_ == SQL_NULL_DATA)
-            {
-                *ind = i_null;
-            }
-            else
-            {
-                *ind = i_truncated;
-            }
-        }
     }
 }
 

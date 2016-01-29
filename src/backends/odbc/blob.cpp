@@ -66,13 +66,13 @@ std::unique_ptr<std::string> odbc_blob_backend::read()
 
     SQLHSTMT hstmt = statement_->hstmt_;
     SQLSMALLINT colnum = static_cast<SQLSMALLINT>(position_);
-    SQLINTEGER ind = 0;
+    SQLLEN ind = 0;
 
     char dummy[1];
     SQLRETURN rc = SQLGetData( hstmt, colnum, SQL_C_BINARY, dummy, 0, &ind);
     if (rc == SQL_SUCCESS_WITH_INFO)
     {
-        const SQLINTEGER DATASIZE = ind;
+        const SQLLEN DATASIZE = ind;
         retObj->resize(DATASIZE);
 
         size_t curr = 0;

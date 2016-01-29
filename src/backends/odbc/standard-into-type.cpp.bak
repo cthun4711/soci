@@ -107,20 +107,6 @@ void odbc_standard_into_type_backend::define_by_pos(
         odbcType_ = SQL_C_ULONG;
         size = sizeof(unsigned long);
         break;
-    case x_blob:
-    {
-        blob *b = static_cast<blob *>(data);
-
-        odbc_blob_backend *bbe
-            = static_cast<odbc_blob_backend *>(b->get_backend());
-
-        bbe->statement_ = &statement_;
-        bbe->position_ = position_;
-
-        odbcType_ = SQL_C_BINARY;
-        size = 0;
-        return; // can't be bound
-    }
     default:
         throw soci_error("Into element used with non-supported type.");
     }

@@ -205,21 +205,6 @@ odbc_statement_backend::fetch(int number, mn_odbc_error_info& err_info)
     return (int)numRowsFetched_;
 }
 
-SQLRETURN
-odbc_statement_backend::upload_blobs()
-{
-    SQLRETURN rc;
-    SQLPOINTER param;
-    while( (rc = SQLParamData(hstmt_, &param)) == SQL_NEED_DATA )
-    {
-        odbc_blob_backend* bbe = static_cast<odbc_blob_backend*>(param);
-        if( bbe )
-            bbe->upload();
-    }
-
-    return rc;
-}
-
 long long odbc_statement_backend::get_affected_rows()
 {
     return rowsAffected_;

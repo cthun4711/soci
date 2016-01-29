@@ -48,18 +48,3 @@ void blob::trim(std::size_t newLen)
 {
     backEnd_->trim(newLen);
 }
-
-std::unique_ptr<std::string> blob::read()
-{
-    return backEnd_->read();
-}
-
-void blob::set_data_source(const char* src, const size_t& srcsz)
-{
-    backEnd_->set_data_source( src, srcsz);
-}
-
-void blob::set_data_source(const std::string& src)
-{
-    set_data_source( src.data(), src.length());
-}

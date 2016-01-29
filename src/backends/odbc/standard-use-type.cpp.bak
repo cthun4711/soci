@@ -141,21 +141,17 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
 
     case x_blob:
     {
-        cType = SQL_C_BINARY;
-        sqlType = SQL_LONGVARBINARY;
-        size = (1 << (8*sizeof(size)-1)) - 1; // TODO determinate configured BLOB size at run-time
-        if( indHolder_ ) *indHolder_ = 0;
+//         sqlType = SQL_VARBINARY;
+//         cType = SQL_C_BINARY;
 
-        blob *b = static_cast<blob *>(data_);
+//         BLOB *b = static_cast<BLOB *>(data);
 
-        odbc_blob_backend *bbe
-            = static_cast<odbc_blob_backend *>(b->get_backend());
+//         odbc_blob_backend *bbe
+//         = static_cast<odbc_blob_backend *>(b->getBackEnd());
 
-        bbe->statement_ = &statement_;
-        bbe->position_ = position_;
-        bbe->chunksize_ = 0;
-
-        return (void*)bbe;
+//         size = 0;
+//         indHolder_ = size;
+        //TODO            data = &bbe->lobp_;
     }
     break;
     case x_statement:
@@ -192,12 +188,6 @@ void odbc_standard_use_type_backend::pre_use()
                                     SQL_PARAM_INPUT,
                                     cType, sqlType, size, 0,
                                     sqlData, 0, indHolder_);
-
-    if( type_ == x_blob )
-    {
-        if( indHolder_ )
-            *indHolder_ = SQL_LEN_DATA_AT_EXEC(0);
-    }
 
     if (is_odbc_error(rc))
     {

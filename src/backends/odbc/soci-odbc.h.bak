@@ -197,7 +197,6 @@ struct odbc_statement_backend : details::statement_backend
 
     virtual int execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize = -1);
     virtual int fetch(int number, mn_odbc_error_info& err_info);
-    SQLRETURN upload_blobs();
 
     virtual long long get_affected_rows();
     virtual int get_number_of_rows();

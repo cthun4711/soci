@@ -110,13 +110,3 @@ void oracle_blob_backend::trim(std::size_t newLen)
         throw_oracle_soci_error(res, session_.errhp_);
     }
 }
-
-std::unique_ptr<std::string> oracle_blob_backend::read()
-{
-    return nullptr;
-}
-
-void oracle_blob_backend::set_data_source(
-    const char* /* src */, const size_t& /* srcsz */)
-{
-}

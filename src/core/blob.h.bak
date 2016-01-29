@@ -11,8 +11,6 @@
 #include "soci-config.h"
 // std
 #include <cstddef>
-#include <string>
-#include <memory>
 
 namespace soci
 {
@@ -37,13 +35,6 @@ public:
         std::size_t toWrite);
     std::size_t append(char const * buf, std::size_t toWrite);
     void trim(std::size_t newLen);
-
-    // TBD return std::unique_ptr<std::vector<char>>
-    // or even std::pair<std::unique_ptr<char>, size_t>
-    // instead of std::unique_ptr<std::string>?
-    std::unique_ptr<std::string> read();
-    void set_data_source(const char* src, const size_t& srcsz);
-    void set_data_source(const std::string& src);
 
     details::blob_backend * get_backend() { return backEnd_; }
 

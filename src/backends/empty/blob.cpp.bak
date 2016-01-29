@@ -59,13 +59,3 @@ void empty_blob_backend::trim(std::size_t /* newLen */)
 {
     // ...
 }
-
-std::unique_ptr<std::string> empty_blob_backend::read()
-{
-    return nullptr;
-}
-
-void empty_blob_backend::set_data_source(
-    const char* /* src */, const size_t& /* srcsz */)
-{
-}

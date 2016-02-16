@@ -76,10 +76,37 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         //}
         break;
     case x_double:
+    {
         sqlType = SQL_DOUBLE;
         cType = SQL_C_DOUBLE;
         size = sizeof(double);
+
+        static bool bIsDB2 = statement_.session_.get_database_product() == odbc_session_backend::prod_db2;
+        if (bIsDB2)
+        {
+            mn_odbc_error_info err;
+            SQLSMALLINT sqlDataType;
+            SQLULEN colSize;
+            SQLSMALLINT decDigits;
+            SQLSMALLINT isNullable;
+
+            if (statement_.describe_param(position_, err, sqlDataType, colSize, decDigits, isNullable))
+            {
+                if (sqlDataType == SQL_DECIMAL && decDigits > 0)
+                {
+                    sqlType = SQL_VARCHAR;
+                    cType = SQL_C_CHAR;
+                    size = colSize * 2;
+                    buf_ = new char[size];
+                    memset(buf_, 0x0, size);
+                    double dVal = *((double*)data_);
+                    snprintf(buf_, size, "%.*lf", decDigits, *static_cast<double*>(data_));
+                    *indHolder_ = SQL_NTS;
+                }
+            }
+        }
         break;
+    }
 
     case x_char:
         sqlType = SQL_CHAR;

@@ -162,7 +162,7 @@ struct odbc_vector_use_type_backend : details::vector_use_type_backend,
         : odbc_standard_type_backend_base(st), data_(NULL), ind_(NULL), buf_(NULL), arraySize_(0){}
 
     // common part for bind_by_pos and bind_by_name
-    void prepare_for_bind(void *&data, SQLUINTEGER &size, SQLSMALLINT &sqlType, SQLSMALLINT &cType, SQLLEN* ind);
+    void prepare_for_bind(void *&data, SQLUINTEGER &size, SQLSMALLINT &sqlType, SQLSMALLINT &cType, SQLLEN* ind, int &position);
     void bind_helper(int &position, void *data, details::exchange_type type, SQLLEN* ind);
 
     virtual void bind_by_pos(int &position,
@@ -209,6 +209,10 @@ struct odbc_statement_backend : details::statement_backend
 
     // helper for defining into vector<string>
     std::size_t column_size(int position);
+
+    bool describe_param(int paramNum, mn_odbc_error_info& err_info,
+                        SQLSMALLINT& dataType, SQLULEN& colSize,
+                        SQLSMALLINT& decDigits, SQLSMALLINT& isNullable);
 
     virtual odbc_standard_into_type_backend * make_into_type_backend();
     virtual odbc_standard_use_type_backend * make_use_type_backend();
@@ -292,6 +296,7 @@ struct odbc_session_backend : details::session_backend
       prod_oracle,
       prod_postgresql,
       prod_sqlite,
+      prod_db2,
       prod_unknown = -1
     };
 

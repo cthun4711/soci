@@ -344,6 +344,30 @@ std::size_t odbc_statement_backend::column_size(int colNum)
     return colSize;
 }
 
+bool 
+odbc_statement_backend::describe_param(int paramNum, mn_odbc_error_info& err_info,
+                                    SQLSMALLINT& dataType, SQLULEN& colSize, 
+                                    SQLSMALLINT& decDigits, SQLSMALLINT& isNullable)
+{
+
+    SQLRETURN rc = SQLDescribeParam(hstmt_, static_cast<SQLUSMALLINT>(paramNum),
+    &dataType, &colSize, &decDigits, &isNullable);
+
+    if (is_odbc_error(rc))
+    {
+        odbc_soci_error myErr(SQL_HANDLE_STMT, hstmt_, "describe parameter");
+    
+        err_info.native_error_code_ = myErr.native_error_code();
+        err_info.odbc_error_message_ = (char*)myErr.odbc_error_message();
+        err_info.odbc_func_name_ = "SQLDescribeParam";
+        err_info.odbc_func_returnval_ = rc;
+    
+        return false;
+    }
+
+    return true;
+}
+
 odbc_standard_into_type_backend * odbc_statement_backend::make_into_type_backend()
 {
     return new odbc_standard_into_type_backend(*this);

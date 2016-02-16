@@ -289,6 +289,8 @@ odbc_session_backend::get_database_product()
         product_ = prod_postgresql;
     else if (strcmp(product_name, "SQLite") == 0)
         product_ = prod_sqlite;
+    else if (strncmp(product_name, "DB2", 3) == 0)
+        product_ = prod_db2;
     else
         product_ = prod_unknown;
 

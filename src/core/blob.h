@@ -9,6 +9,7 @@
 #define SOCI_BLOB_H_INCLUDED
 
 #include "soci-config.h"
+#include "error.h"
 // std
 #include <cstddef>
 #include <string>
@@ -41,7 +42,7 @@ public:
     // TBD return std::unique_ptr<std::vector<char>>
     // or even std::pair<std::unique_ptr<char>, size_t>
     // instead of std::unique_ptr<std::string>?
-    std::unique_ptr<std::string> read();
+    std::unique_ptr<std::string> read(mn_odbc_error_info& err_info);
     void set_data_source(const char* src, const size_t& srcsz);
     void set_data_source(const std::string& src);
 

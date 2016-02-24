@@ -197,7 +197,7 @@ struct odbc_statement_backend : details::statement_backend
 
     virtual int execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize = -1);
     virtual int fetch(int number, mn_odbc_error_info& err_info);
-    SQLRETURN upload_blobs();
+    SQLRETURN upload_blobs(mn_odbc_error_info& err_info);
 
     virtual long long get_affected_rows();
     virtual int get_number_of_rows();
@@ -250,9 +250,9 @@ struct odbc_blob_backend : details::blob_backend
     virtual std::size_t append(char const *buf, std::size_t toWrite);
     virtual void trim(std::size_t newLen);
 
-    virtual std::unique_ptr<std::string> read() override;
+    virtual std::unique_ptr<std::string> read(mn_odbc_error_info& err_info) override;
     virtual void set_data_source(const char* src, const size_t& srcsz) override;
-    void upload();
+    SQLRETURN upload(mn_odbc_error_info& err_info);
 
     odbc_session_backend &session_;
     odbc_statement_backend* statement_;

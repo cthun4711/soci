@@ -49,9 +49,9 @@ void blob::trim(std::size_t newLen)
     backEnd_->trim(newLen);
 }
 
-std::unique_ptr<std::string> blob::read()
+std::unique_ptr<std::string> blob::read(mn_odbc_error_info& err_info)
 {
-    return backEnd_->read();
+    return backEnd_->read(err_info);
 }
 
 void blob::set_data_source(const char* src, const size_t& srcsz)

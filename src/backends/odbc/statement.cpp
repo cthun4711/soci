@@ -87,7 +87,7 @@ odbc_statement_backend::execute(int iFetchSize, mn_odbc_error_info& err_info, in
     SQLRETURN rc = SQLExecute(hstmt_);
     if( rc == SQL_NEED_DATA )
     {
-        rc = upload_blobs();
+        rc = upload_blobs(err_info);
     }
 
     if (is_odbc_error(rc))
@@ -114,13 +114,16 @@ odbc_statement_backend::execute(int iFetchSize, mn_odbc_error_info& err_info, in
         //    while (rows_processed > 0 && SQLMoreResults(hstmt_) == SQL_SUCCESS);
         //}
         
-        odbc_soci_error myErr(SQL_HANDLE_STMT, hstmt_,
-                         "Statement Execute");
+        if( err_info.odbc_error_message_.empty() )
+        {
+            odbc_soci_error myErr(SQL_HANDLE_STMT, hstmt_,
+                "Statement Execute");
 
-        err_info.native_error_code_ = myErr.native_error_code();
-        err_info.odbc_error_message_ = (char*)myErr.odbc_error_message();
-        err_info.odbc_func_name_ = "SQLExecute";
-        err_info.odbc_func_returnval_ = rc;
+            err_info.native_error_code_ = myErr.native_error_code();
+            err_info.odbc_error_message_ = (char*)myErr.odbc_error_message();
+            err_info.odbc_func_name_ = "SQLExecute";
+            err_info.odbc_func_returnval_ = rc;
+        }
 
         return -1;
     }
@@ -206,7 +209,7 @@ odbc_statement_backend::fetch(int number, mn_odbc_error_info& err_info)
 }
 
 SQLRETURN
-odbc_statement_backend::upload_blobs()
+odbc_statement_backend::upload_blobs(mn_odbc_error_info& err_info)
 {
     SQLRETURN rc;
     SQLPOINTER param;
@@ -214,7 +217,11 @@ odbc_statement_backend::upload_blobs()
     {
         odbc_blob_backend* bbe = static_cast<odbc_blob_backend*>(param);
         if( bbe )
-            bbe->upload();
+        {
+            rc = bbe->upload(err_info);
+            if( rc != SQL_SUCCESS )
+                break;
+        }
     }
 
     return rc;

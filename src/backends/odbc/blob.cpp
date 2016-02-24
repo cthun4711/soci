@@ -60,7 +60,7 @@ void odbc_blob_backend::trim(std::size_t /* newLen */)
     // ...
 }
 
-std::unique_ptr<std::string> odbc_blob_backend::read()
+std::unique_ptr<std::string> odbc_blob_backend::read(mn_odbc_error_info& err_info)
 {
     std::unique_ptr<std::string> retObj = std::unique_ptr<std::string>(new std::string());
 
@@ -68,29 +68,41 @@ std::unique_ptr<std::string> odbc_blob_backend::read()
     SQLSMALLINT colnum = static_cast<SQLSMALLINT>(position_);
     SQLLEN ind = 0;
 
-    char dummy[1];
-    SQLRETURN rc = SQLGetData( hstmt, colnum, SQL_C_BINARY, dummy, 0, &ind);
-    if (rc == SQL_SUCCESS_WITH_INFO)
+    const SQLLEN BUFSIZE = 32*1024;
+    char* buf = new char[BUFSIZE];
+    if( buf != nullptr )
     {
-        const SQLLEN DATASIZE = ind;
-        retObj->resize(DATASIZE);
-
-        size_t curr = 0;
-        while( ((rc = SQLGetData( hstmt, colnum, SQL_C_BINARY, &(*retObj)[curr], DATASIZE, &ind)) == SQL_SUCCESS)
-                || rc == SQL_SUCCESS_WITH_INFO )
+        SQLRETURN rc;
+        while (((rc = SQLGetData(hstmt, colnum, SQL_C_BINARY, buf, BUFSIZE, &ind)) == SQL_SUCCESS)
+            || rc == SQL_SUCCESS_WITH_INFO)
         {
-            const size_t bytes = std::min<SQLINTEGER>(DATASIZE, ind);
-            curr += bytes;
+            const size_t bytes = std::min<SQLINTEGER>(BUFSIZE, ind);
+            retObj->append(buf, bytes);
 
-            if( rc == SQL_SUCCESS )
+            if (rc == SQL_SUCCESS)
                 break;
         }
-    }
 
-    if( is_odbc_error(rc) )
+        delete buf;
+        buf = nullptr;
+
+        if( is_odbc_error(rc) )
+        {
+            retObj->clear();
+            odbc_soci_error myErr( SQL_HANDLE_STMT, hstmt, "reading BLOB");
+
+            err_info.native_error_code_ = myErr.native_error_code();
+            err_info.odbc_error_message_ = (char*)myErr.odbc_error_message();
+            err_info.odbc_func_name_ = "SQLGetData";
+            err_info.odbc_func_returnval_ = rc;
+        }
+    }
+    else
     {
-        retObj->clear();
-        throw odbc_soci_error(SQL_HANDLE_STMT, hstmt, "reading BLOB");
+            err_info.native_error_code_ = SQL_ERROR;
+            err_info.odbc_error_message_ = "failed to allocate buffer";
+            err_info.odbc_func_name_ = "";
+            err_info.odbc_func_returnval_ = SQL_ERROR;
     }
 
     return retObj;
@@ -103,8 +115,9 @@ void odbc_blob_backend::set_data_source(
     srcsize_ =srcsz;
 }
 
-void odbc_blob_backend::upload()
+SQLRETURN odbc_blob_backend::upload(mn_odbc_error_info& err_info)
 {
+    SQLRETURN rc = SQL_SUCCESS;
     if( srcdata_ && srcsize_ > 0 )
     {
         SQLHSTMT hstmt = statement_->hstmt_;
@@ -112,11 +125,19 @@ void odbc_blob_backend::upload()
         const char* endp = srcdata_ + srcsize_;
         for(const char* p=srcdata_ ; p<endp ; p+=CHUNKSIZE)
         {
-            SQLRETURN rc = SQLPutData( hstmt, (SQLPOINTER)p, CHUNKSIZE);
+            rc = SQLPutData( hstmt, (SQLPOINTER)p, CHUNKSIZE);
             if( is_odbc_error(rc) )
             {
-                throw odbc_soci_error( SQL_HANDLE_STMT, hstmt, "uploading BLOB");
+                odbc_soci_error myErr(SQL_HANDLE_STMT, hstmt, "uploading BLOB");
+
+                err_info.native_error_code_ = myErr.native_error_code();
+                err_info.odbc_error_message_ = (char*)myErr.odbc_error_message();
+                err_info.odbc_func_name_ = "SQLPutData";
+                err_info.odbc_func_returnval_ = rc;
+                break;
             }
         }
     }
+
+    return rc;
 }

@@ -219,7 +219,7 @@ public:
     virtual std::size_t append(char const* buf, std::size_t toWrite) = 0;
     virtual void trim(std::size_t newLen) = 0;
 
-    virtual std::unique_ptr<std::string> read() = 0;
+    virtual std::unique_ptr<std::string> read(mn_odbc_error_info& err_info) = 0;
     virtual void set_data_source(const char* src, const size_t& srcsz) = 0;
 
 private:

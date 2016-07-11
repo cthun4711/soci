@@ -42,6 +42,20 @@ void odbc_statement_backend::alloc()
         throw odbc_soci_error(SQL_HANDLE_DBC, session_.hdbc_,
             "Allocating statement");
     }
+
+    // Setting so called Server Cursors for the MS SQL Server
+    // to be able to use multiple open statements.
+    // The default value SQL_CONCUR_READ_ONLY does not allow paralell execution
+    // of statements.
+    if( session_.get_database_product() == odbc_session_backend::prod_mssql )
+    {
+        rc = SQLSetStmtAttr(hstmt_, SQL_ATTR_CONCURRENCY, (SQLPOINTER)SQL_CONCUR_ROWVER, 0);
+        if (is_odbc_error(rc))
+        {
+            throw odbc_soci_error(SQL_HANDLE_DBC, session_.hdbc_,
+                "Setting statement attribute");
+        }
+    }
 }
 
 void odbc_statement_backend::cancel_statement()

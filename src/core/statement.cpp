@@ -22,6 +22,30 @@
 using namespace soci;
 using namespace soci::details;
 
+soci::details::into_type_ptr 
+soci::details::do_into(MNSociArrayString & t)
+{
+    return into_type_ptr(new into_type<MNSociArrayString>(t));
+}
+
+soci::details::into_type_ptr 
+soci::details::do_into(MNSociArrayText & t)
+{
+    return into_type_ptr(new into_type<MNSociArrayText>(t));
+}
+
+soci::details::into_type_ptr 
+soci::into(MNSociArrayString & t)
+{
+    return soci::details::do_into(t);
+}
+
+soci::details::into_type_ptr 
+soci::into(MNSociArrayText & t)
+{
+    return soci::details::do_into(t);
+}
+
 void statement::exchange(into_type_ptr const & i)
 {
     impl_->exchange(i);
@@ -617,7 +641,7 @@ void statement_impl::bind_into<dt_string>()
 template<>
 void statement_impl::bind_into<dt_double>()
 {
-    into_row<double>();
+    into_row<MNSociString>();
 }
 
 template<>

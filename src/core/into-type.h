@@ -162,15 +162,8 @@ into_type_ptr do_into(T & t, std::vector<SQLLEN> & vecInd, basic_type_tag)
     return into_type_ptr(new into_type<T>(t, vecInd));
 }
 
-template <typename T>
-into_type_ptr do_into(T & t, basic_type_tag)
-{
-	return into_type_ptr(new into_type<T>(t));
-}
-
-
-
-
+into_type_ptr do_into(MNSociArrayString & t);
+into_type_ptr do_into(MNSociArrayText & t);
 
 
 } // namespace details

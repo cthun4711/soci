@@ -37,10 +37,10 @@ details::into_type_ptr into(T & t, std::vector<SQLLEN> & ind)
         typename details::exchange_traits<T>::type_family());
 }
 
-template <typename MNSociArrayString>
-details::into_type_ptr into(MNSociArrayString & t)
+template <typename T>
+details::into_type_ptr into(T & t)
 {
-    return details::do_into<MNSociArrayString>(t, typename details::exchange_traits<MNSociArrayString>::type_family());
+    return details::do_into<T>(t,typename details::exchange_traits<T>::type_family());
 }
 
 } // namespace soci

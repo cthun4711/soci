@@ -24,3 +24,4 @@ src/build*
 *.creator*
 *.files
 *.includes
+*.patch

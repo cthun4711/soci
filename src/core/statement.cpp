@@ -601,6 +601,13 @@ void statement_impl::bind_into<dt_string_mn_256>()
     into_row<MNSociString>();
 }
 
+
+template<>
+void statement_impl::bind_into<dt_string_mn_4000>()
+{
+	into_row<MNSociText>();
+}
+
 template<>
 void statement_impl::bind_into<dt_string>()
 {
@@ -661,7 +668,8 @@ bool statement_impl::describe(mn_odbc_error_info& err_info)
         case dt_string:
             if (props->get_column_size() > 255)
             {
-                bind_into<dt_string>();
+				bind_into<dt_string_mn_4000>();
+				props->set_data_type(dt_string_mn_4000);
             }
             else
             {

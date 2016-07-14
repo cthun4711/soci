@@ -181,6 +181,21 @@ public:
     {}
 };
 
+template <>
+class use_type<MNSociArrayText > : public vector_use_type
+{
+public:
+	use_type(MNSociArrayText& v)
+		: vector_use_type(&v,
+		static_cast<exchange_type>(exchange_traits<MNSociArrayText>::x_type), NULL)
+	{}
+
+	use_type(MNSociArrayText const& v)
+		: vector_use_type(const_cast<MNSociArrayText *>(&v),
+		static_cast<exchange_type>(exchange_traits<MNSociArrayText>::x_type), NULL)
+	{}
+};
+
 // helper dispatchers for basic types
 template <typename T>
 use_type_ptr do_use(T & t, SQLLEN & ind, basic_type_tag)
@@ -199,6 +214,12 @@ use_type_ptr do_use(MNSociArrayString & t, basic_type_tag)
 {
     return use_type_ptr(new use_type<MNSociArrayString>(t));
 }
+
+//template <typename MNSociArrayText>
+//use_type_ptr do_use(MNSociArrayText & t, basic_type_tag)
+//{
+//	return use_type_ptr(new use_type<MNSociArrayText>(t));
+//}
 
 template <typename T>
 use_type_ptr do_use(T & t, std::vector<SQLLEN> & ind, basic_type_tag)

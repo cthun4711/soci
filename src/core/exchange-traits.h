@@ -85,6 +85,13 @@ struct exchange_traits<MNSociArrayString>
     enum { x_type = x_mnsociarraystring };
 };
 
+template <>
+struct exchange_traits<MNSociArrayText>
+{
+	typedef basic_type_tag type_family;
+	enum { x_type = x_mnsociarraytext };
+};
+
 
 template <>
 struct exchange_traits<long long>
@@ -137,6 +144,14 @@ struct exchange_traits<MNSociString>
     typedef basic_type_tag type_family;
     enum { x_type = x_mnsocistring };
 };
+
+template <>
+struct exchange_traits<MNSociText>
+{
+	typedef basic_type_tag type_family;
+	enum { x_type = x_mnsocitext };
+};
+
 
 //template <>
 //struct exchange_traits<std::tm>

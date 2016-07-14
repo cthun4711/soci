@@ -29,7 +29,7 @@ namespace soci
 // data types, as seen by the user
 enum data_type
 {
-    dt_string, dt_string_mn_256, dt_date, dt_double, dt_integer, dt_long_long, dt_unsigned_long_long, dt_timestamp_struct
+	dt_string, dt_string_mn_256, dt_string_mn_4000, dt_date, dt_double, dt_integer, dt_long_long, dt_unsigned_long_long, dt_timestamp_struct
 };
 
 class session;
@@ -54,7 +54,9 @@ enum exchange_type
     x_blob,
     x_mnsocistring,
     x_odbctimestamp,
-    x_mnsociarraystring
+    x_mnsociarraystring,
+	x_mnsocitext,
+	x_mnsociarraytext
 };
 
 // type of statement (used for optimizing statement preparation)

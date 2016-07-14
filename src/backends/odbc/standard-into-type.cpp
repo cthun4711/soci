@@ -37,11 +37,18 @@ void odbc_standard_into_type_backend::define_by_pos(
         break;
     case x_mnsocistring:
         odbcType_ = SQL_C_CHAR;
-        size = 257;
+		size = ((MNSociString*)data_)->getSize();
         buf_ = &(((MNSociString*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
         data = buf_;
         this->ind_ = &((MNSociString*)data_)->m_iIndicator;
         break;
+	case x_mnsocitext:
+		odbcType_ = SQL_C_CHAR;
+		size = ((MNSociText*)data_)->getSize();
+		buf_ = &(((MNSociText*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
+		data = buf_;
+		this->ind_ = &((MNSociText*)data_)->m_iIndicator;
+		break;
     case x_stdstring:
         odbcType_ = SQL_C_CHAR;
         // Patch: set to min between column size and 100MB (used ot be 32769)
@@ -174,7 +181,7 @@ void odbc_standard_into_type_backend::clean_up()
 {
     if (buf_)
     {
-        if (type_ != x_mnsocistring)
+        if (type_ != x_mnsocistring && type_ != x_mnsocitext)
         {
             delete[] buf_;
         }

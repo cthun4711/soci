@@ -212,12 +212,24 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
         cType = SQL_C_CHAR;
         
         MNSociArrayString *v = static_cast<MNSociArrayString *>(data);
-        size = 257;
+        size = v->getStringSize();
         data = v->getArrayCharData();
         ind = v->getArrayIndicators();
         arraySize_ = v->getCurrentInsertedElementCount();
         break;
     }
+	case x_mnsociarraytext:
+		{
+			sqlType = SQL_CHAR;
+			cType = SQL_C_CHAR;
+
+			MNSociArrayText *v = static_cast<MNSociArrayText *>(data);
+			size = v->getStringSize();
+			data = v->getArrayCharData();
+			ind = v->getArrayIndicators();
+			arraySize_ = v->getCurrentInsertedElementCount();
+			break;
+		}
     case x_mnsocistring:
         {
             sqlType = SQL_CHAR;
@@ -233,22 +245,53 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             //maxSize = 257 + 1;
             //must have size + 1 for the vector iteration!!
 
-            buf_ = new char[256 * vecSize];
-            memset(buf_, 0, 256 * vecSize);
+            buf_ = new char[(MNSociString::MNSOCI_SIZE - 1) * vecSize];
+			memset(buf_, 0, (MNSociString::MNSOCI_SIZE - 1) * vecSize);
 
             char *pos = buf_;
             for (std::size_t i = 0; i != vecSize; ++i)
             {
                 ind[i] = strlen(v[i].m_ptrCharData);
                 strncpy(pos, v[i].m_ptrCharData, ind[i]);
-                pos += 256;
+				pos += (MNSociString::MNSOCI_SIZE - 1);
             }
 
             data = buf_;
             size = static_cast<SQLINTEGER>(256);
             arraySize_ = vecSize;
         }
-        break;                          
+        break;           
+	case x_mnsocitext:
+		{
+			sqlType = SQL_CHAR;
+			cType = SQL_C_CHAR;
+
+			std::vector<MNSociText> *vp
+				= static_cast<std::vector<MNSociText> *>(data);
+			std::vector<MNSociText> &v(*vp);
+
+			//std::size_t maxSize = 0;
+			std::size_t const vecSize = v.size();
+
+			//maxSize = 257 + 1;
+			//must have size + 1 for the vector iteration!!
+
+			buf_ = new char[(MNSociText::MNSOCI_SIZE - 1) *vecSize];
+			memset(buf_, 0, (MNSociText::MNSOCI_SIZE - 1) *vecSize);
+
+			char *pos = buf_;
+			for (std::size_t i = 0; i != vecSize; ++i)
+			{
+				ind[i] = strlen(v[i].m_ptrCharData);
+				strncpy(pos, v[i].m_ptrCharData, ind[i]);
+				pos += (MNSociText::MNSOCI_SIZE - 1);
+			}
+
+			data = buf_;
+			size = static_cast<SQLINTEGER>(256);
+			arraySize_ = vecSize;
+		}
+		break;
    
     case x_odbctimestamp:
     {
@@ -323,6 +366,12 @@ std::size_t odbc_vector_use_type_backend::size()
         sz = vp->getCurrentInsertedElementCount(); 
         break;
     }
+	case x_mnsociarraytext:
+		{
+			MNSociArrayText *vp = static_cast<MNSociArrayText *>(data_);
+			sz = vp->getCurrentInsertedElementCount();
+			break;
+		}
     case x_short:
         {
             std::vector<short> *vp = static_cast<std::vector<short> *>(data_);
@@ -370,6 +419,13 @@ std::size_t odbc_vector_use_type_backend::size()
             sz = vp->size();
         }
         break;
+	case x_mnsocitext:
+		{
+			std::vector<MNSociText> *vp
+				= static_cast<std::vector<MNSociText> *>(data_);
+			sz = vp->size();
+		}
+		break;
     //case x_stdtm:
     //    {
     //        std::vector<std::tm> *vp

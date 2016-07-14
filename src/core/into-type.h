@@ -139,6 +139,15 @@ public:
         static_cast<exchange_type>(exchange_traits<MNSociArrayString>::x_type), NULL) {}
 };
 
+template <>
+class into_type<MNSociArrayText > : public vector_into_type
+{
+public:
+	into_type(MNSociArrayText & v)
+		: vector_into_type(&v,
+		static_cast<exchange_type>(exchange_traits<MNSociArrayText>::x_type), NULL) {}
+};
+
 // helper dispatchers for basic types
 
 template <typename T>
@@ -153,11 +162,16 @@ into_type_ptr do_into(T & t, std::vector<SQLLEN> & vecInd, basic_type_tag)
     return into_type_ptr(new into_type<T>(t, vecInd));
 }
 
-template <typename MNSociArrayString>
-into_type_ptr do_into(MNSociArrayString & t, basic_type_tag)
+template <typename T>
+into_type_ptr do_into(T & t, basic_type_tag)
 {
-    return into_type_ptr(new into_type<MNSociArrayString>(t));
+	return into_type_ptr(new into_type<T>(t));
 }
+
+
+
+
+
 
 } // namespace details
 

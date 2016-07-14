@@ -103,7 +103,7 @@ void odbc_vector_into_type_backend::define_by_pos(
         odbcType_ = SQL_C_CHAR;
         std::vector<MNSociString> *v
             = static_cast<std::vector<MNSociString> *>(data);
-        colSize_ = 257;
+        colSize_ = MNSociString::MNSOCI_SIZE;
         std::size_t bufSize = colSize_ * v->size();
         buf_ = new char[bufSize];
 
@@ -111,22 +111,44 @@ void odbc_vector_into_type_backend::define_by_pos(
         data = buf_;
         break;
     }
+	case x_mnsocitext:
+		{
+			odbcType_ = SQL_C_CHAR;
+			std::vector<MNSociText> *v
+				= static_cast<std::vector<MNSociText> *>(data);
+			colSize_ = 4002;
+			std::size_t bufSize = colSize_ * v->size();
+			buf_ = new char[bufSize];
+
+			size = static_cast<SQLINTEGER>(colSize_);
+			data = buf_;
+			break;
+		}
     case x_mnsociarraystring:
     {
         odbcType_ = SQL_C_CHAR;
         MNSociArrayString* v = static_cast<MNSociArrayString *>(data);
-        size = 257;
+        size = v->getStringSize();
         data = v->getArrayCharData();
         indHolders = v->getArrayIndicators();
         break;
     }
+	case x_mnsociarraytext:
+		{
+			odbcType_ = SQL_C_CHAR;
+			MNSociArrayText* v = static_cast<MNSociArrayText *>(data);
+			size = v->getStringSize();
+			data = v->getArrayCharData();
+			indHolders = v->getArrayIndicators();
+			break;
+		}
     case x_stdstring:
         {
             odbcType_ = SQL_C_CHAR;
             std::vector<std::string> *v
                 = static_cast<std::vector<std::string> *>(data);
             //colSize_ = statement_.column_size(position) + 1;
-            colSize_ = 256;
+            colSize_ = 257;
             std::size_t bufSize = colSize_ * v->size();
             buf_ = new char[bufSize];
 
@@ -215,6 +237,12 @@ std::size_t odbc_vector_into_type_backend::size()
         sz = v->getArraySize();
         break;
     }
+	case x_mnsociarraytext:
+		{
+			MNSociArrayText *v = static_cast<MNSociArrayText*>(data_);
+			sz = v->getArraySize();
+			break;
+		}
     case x_short:
         {
             std::vector<short> *v = static_cast<std::vector<short> *>(data_);
@@ -262,6 +290,13 @@ std::size_t odbc_vector_into_type_backend::size()
         sz = v->size();
     }
     break;
+	case x_mnsocitext:
+		{
+			std::vector<MNSociText> *v
+				= static_cast<std::vector<MNSociText> *>(data_);
+			sz = v->size();
+		}
+		break;
     //case x_stdtm:
     //    {
     //        std::vector<std::tm> *v

@@ -64,6 +64,13 @@ standard_use_type::to_string()
         break;
         break;
     }
+	case x_mnsocitext:
+		{
+			strVal = "x_mnsocitext:";
+			strVal += ((MNSociText*)data_)->m_ptrCharData;
+			break;
+			break;
+		}
     case x_short:
     {
         sprintf(msg, "%d", *(short*)data_);

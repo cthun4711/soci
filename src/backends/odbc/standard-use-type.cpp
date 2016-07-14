@@ -120,10 +120,17 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
     case x_mnsocistring:
         sqlType = SQL_VARCHAR;
         cType = SQL_C_CHAR;
-        size = 256;
+		size = ((MNSociString*)data_)->getSize();
         buf_ = &(((MNSociString*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
         *indHolder_ = SQL_NTS;
         break;
+	case x_mnsocitext:
+		sqlType = SQL_VARCHAR;
+		cType = SQL_C_CHAR;
+		size = ((MNSociText*)data_)->getSize();
+		buf_ = &(((MNSociText*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
+		*indHolder_ = SQL_NTS;
+		break;
     case x_stdstring:
     {
         std::string* s = static_cast<std::string*>(data_);
@@ -237,7 +244,7 @@ void odbc_standard_use_type_backend::clean_up()
 {
     if (buf_ != NULL)
     {
-        if (type_ != x_mnsocistring)
+        if (type_ != x_mnsocistring && type_ != x_mnsocitext)
         {
             delete[] buf_;
         }

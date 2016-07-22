@@ -641,7 +641,7 @@ void statement_impl::bind_into<dt_string>()
 template<>
 void statement_impl::bind_into<dt_double>()
 {
-    into_row<MNSociString>();
+    into_row<double>();
 }
 
 template<>

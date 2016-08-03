@@ -96,8 +96,8 @@ public:
 
     MNSociArrayString& operator = (const MNSociArrayString& obj); //create compile error when used
 
-	void    push_back(const char* ptrChar) { strcpy(&m_ptrArrayCharData[m_iCurrentArrayInsertPosition * m_iSize], ptrChar); m_vecIndicators[m_iCurrentArrayInsertPosition] = ptrChar ? strlen(ptrChar) : SQL_NULL_DATA;  ++m_iCurrentArrayInsertPosition; }
-	void    push_back(char* ptrChar) { strcpy(&m_ptrArrayCharData[m_iCurrentArrayInsertPosition * m_iSize], ptrChar); m_vecIndicators[m_iCurrentArrayInsertPosition] = ptrChar ? strlen(ptrChar) : SQL_NULL_DATA; ++m_iCurrentArrayInsertPosition; }
+	void    push_back(const char* ptrChar) { strcpy(&m_ptrArrayCharData[m_iCurrentArrayInsertPosition * m_iSize], ptrChar); m_vecIndicators[m_iCurrentArrayInsertPosition] =  SQL_NTS;  ++m_iCurrentArrayInsertPosition; }
+    void    push_back(char* ptrChar) { strcpy(&m_ptrArrayCharData[m_iCurrentArrayInsertPosition * m_iSize], ptrChar); m_vecIndicators[m_iCurrentArrayInsertPosition] = SQL_NTS; ++m_iCurrentArrayInsertPosition; }
     
 	char*   getValue(const int& iCurrentArrayReadPos) { return &m_ptrArrayCharData[iCurrentArrayReadPos * m_iSize]; }
     SQLLEN  getIndicator(const int& iCurrentArrayReadPos) { return m_vecIndicators[iCurrentArrayReadPos]; }

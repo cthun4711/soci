@@ -641,7 +641,7 @@ void statement_impl::bind_into<dt_string>()
 template<>
 void statement_impl::bind_into<dt_double>()
 {
-    into_row<double>();
+    into_row<MNSociString>();
 }
 
 template<>
@@ -702,7 +702,7 @@ bool statement_impl::describe(mn_odbc_error_info& err_info)
             }
             break;
         case dt_double:
-            bind_into<dt_double>();
+            bind_into<dt_string_mn_256>();
             break;
         case dt_integer:
             bind_into<dt_integer>();

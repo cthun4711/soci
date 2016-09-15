@@ -28,7 +28,7 @@ void standard_use_type::bind(statement_impl & st, int & position)
     backEnd_->bind_by_pos(position, data_, type_, readOnly_, ind_);
 }
 
-void standard_use_type::pre_use()   
+void standard_use_type::pre_use()
 {
     // Handle IN direction of parameters of SQL statements and procedures
     //convert_to_base();
@@ -36,7 +36,7 @@ void standard_use_type::pre_use()
     backEnd_->pre_use();
 }
 
-std::string 
+std::string
 standard_use_type::to_string()
 {
     std::string strVal;
@@ -48,7 +48,7 @@ standard_use_type::to_string()
     case x_char:
     {
         strVal = "x_char:";
-        strVal += (char)data_;
+        strVal += (char*)data_;
         break;
     }
     case x_stdstring:
@@ -149,7 +149,7 @@ void vector_use_type::bind(statement_impl & st, int & position)
     {
         backEnd_ = st.make_vector_use_type_backend();
     }
-    
+
     backEnd_->bind_by_pos(position, data_, type_,  ind_);
 }
 

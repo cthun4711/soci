@@ -48,9 +48,9 @@ public:
         // Fetch first row to properly initialize iterator
         ++(*this);
     }
-    
+
     // Access operators
-    
+
     reference operator*() const
     {
         return (*define_);
@@ -60,14 +60,15 @@ public:
     {
         return &(operator*());
     }
-    
+
     // Iteration operators
 
     rowset_iterator & operator++()
     {
         // Fetch next row from dataset
-        
-        if (st_->fetch() == 0)
+
+        soci::mn_odbc_error_info info;
+        if (st_->fetch(info) == 0)
         {
             // Set iterator to non-derefencable state (pass-the-end)
             st_ = 0;
@@ -123,7 +124,8 @@ public:
         assert(0 != define_.get());
 
         st_->exchange_for_rowset(into(*define_));
-        st_->execute();
+        soci::mn_odbc_error_info info;
+        st_->execute(50,info);
     }
 
     void incRef()
@@ -179,7 +181,7 @@ public:
     typedef T value_type;
     typedef rowset_iterator<T> iterator;
     typedef rowset_iterator<T> const_iterator;
-    
+
     // this is a conversion constructor
     rowset(details::prepare_temp_type const& prep)
         : pimpl_(new details::rowset_impl<T>(prep))
@@ -222,7 +224,7 @@ public:
 
         return pimpl_->begin();
     }
-    
+
     const_iterator end() const
     {
         assert(0 != pimpl_);

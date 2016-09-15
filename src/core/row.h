@@ -53,7 +53,7 @@ private:
 
 class SOCI_DECL row
 {
-public:    
+public:
     row();
     ~row();
 
@@ -102,7 +102,7 @@ public:
     {
         assert(holders_.size() >= pos + 1);
 
-        if (i_null == *indicators_[pos])
+        if (SQL_NULL_DATA == *indicators_[pos])
         {
             return nullValue;
         }

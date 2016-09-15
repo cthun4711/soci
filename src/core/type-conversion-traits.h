@@ -9,6 +9,9 @@
 #define SOCI_TYPE_CONVERSION_TRAITS_H_INCLUDED
 
 #include "soci-backend.h"
+#ifdef __GNUC__
+#include "sql.h"
+#endif
 
 namespace soci
 {

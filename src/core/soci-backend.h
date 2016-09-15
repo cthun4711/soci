@@ -56,7 +56,8 @@ enum exchange_type
     x_odbctimestamp,
     x_mnsociarraystring,
 	x_mnsocitext,
-	x_mnsociarraytext
+	x_mnsociarraytext,
+    x_odbcnumericstruct
 };
 
 // type of statement (used for optimizing statement preparation)

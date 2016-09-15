@@ -80,31 +80,6 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         sqlType = SQL_DOUBLE;
         cType = SQL_C_DOUBLE;
         size = sizeof(double);
-
-        static bool bIsDB2 = statement_.session_.get_database_product() == odbc_session_backend::prod_db2;
-        if (bIsDB2)
-        {
-            mn_odbc_error_info err;
-            SQLSMALLINT sqlDataType;
-            SQLULEN colSize;
-            SQLSMALLINT decDigits;
-            SQLSMALLINT isNullable;
-
-            if (statement_.describe_param(position_, err, sqlDataType, colSize, decDigits, isNullable))
-            {
-                if (sqlDataType == SQL_DECIMAL && decDigits > 0)
-                {
-                    sqlType = SQL_VARCHAR;
-                    cType = SQL_C_CHAR;
-                    size = colSize * 2;
-                    buf_ = new char[size];
-                    memset(buf_, 0x0, size);
-                    double dVal = *((double*)data_);
-                    snprintf(buf_, size, "%.*lf", decDigits, *static_cast<double*>(data_));
-                    *indHolder_ = SQL_NTS;
-                }
-            }
-        }
         break;
     }
 
@@ -115,21 +90,21 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         buf_ = new char[size];
         buf_[0] = *static_cast<char*>(data_);
         buf_[1] = '\0';
-        *indHolder_ = SQL_NTS;
+        *indHolder_ = strlen(buf_) == 0 ? SQL_NULL_DATA : SQL_NTS;
         break;
     case x_mnsocistring:
         sqlType = SQL_VARCHAR;
         cType = SQL_C_CHAR;
 		size = ((MNSociString*)data_)->getSize();
         buf_ = &(((MNSociString*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
-        *indHolder_ = SQL_NTS;
+        *indHolder_ = ((MNSociString*)data_)->m_iIndicator == 0 ? SQL_NULL_DATA : SQL_NTS;
         break;
 	case x_mnsocitext:
 		sqlType = SQL_VARCHAR;
 		cType = SQL_C_CHAR;
 		size = ((MNSociText*)data_)->getSize();
 		buf_ = &(((MNSociText*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
-		*indHolder_ = SQL_NTS;
+        *indHolder_ = ((MNSociText*)data_)->m_iIndicator == 0 ? SQL_NULL_DATA : SQL_NTS;
 		break;
     case x_stdstring:
     {
@@ -140,7 +115,7 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         buf_ = new char[size+1];
         memcpy(buf_, s->c_str(), size);
         buf_[size++] = '\0';
-        *indHolder_ = SQL_NTS;
+        *indHolder_ = size == 0 ? SQL_NULL_DATA : SQL_NTS;
     }
     break;
     //case x_stdtm:
@@ -172,12 +147,19 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         size = sizeof(TIMESTAMP_STRUCT); 
         break;
     }
+    case x_odbcnumericstruct:
+    {
+        sqlType = SQL_NUMERIC;
+        cType = SQL_C_NUMERIC;
+        size = sizeof(SQL_NUMERIC_STRUCT);
+        break;
+    }
 
     case x_blob:
     {
         cType = SQL_C_BINARY;
         sqlType = SQL_LONGVARBINARY;
-        size = (1 << (8*sizeof(size)-1)) - 1; // TODO determinate configured BLOB size at run-time
+        size = 0x7FFFFFFF; // TODO determinate configured BLOB size at run-time
         if( indHolder_ ) *indHolder_ = 0;
 
         blob *b = static_cast<blob *>(data_);
@@ -221,11 +203,42 @@ void odbc_standard_use_type_backend::pre_use()
 
     void* const sqlData = prepare_for_bind(size, sqlType, cType);
 
-    SQLRETURN rc = SQLBindParameter(statement_.hstmt_,
-                                    static_cast<SQLUSMALLINT>(position_),
-                                    SQL_PARAM_INPUT,
-                                    cType, sqlType, size, 0,
-                                    sqlData, 0, indHolder_);
+    SQLRETURN rc = 0;
+    
+    if (type_ != x_odbcnumericstruct)
+    {
+        rc = SQLBindParameter(statement_.hstmt_,
+            static_cast<SQLUSMALLINT>(position_),
+            SQL_PARAM_INPUT,
+            cType, sqlType, size, 0,
+            sqlData, 0, indHolder_);
+    }
+    else
+    {
+        SQLLEN COLPREC = 36;
+        const SQLLEN COLSCALE = 14;
+
+        switch (statement_.session_.get_database_product())
+        {
+        case odbc_session_backend::prod_db2:
+            COLPREC = 31;
+            break;
+        case odbc_session_backend::prod_sybase:
+            COLPREC = 38;
+            break;
+        case odbc_session_backend::prod_mssql:
+        case odbc_session_backend::prod_oracle:
+        default: 
+            //do nothing, 36, 14 is OK
+            break;
+        }
+
+        rc = SQLBindParameter(statement_.hstmt_,
+            static_cast<SQLUSMALLINT>(position_),
+            SQL_PARAM_INPUT,
+            cType, sqlType, COLPREC, COLSCALE,
+            sqlData, 0, indHolder_);
+    }
 
     if( type_ == x_blob )
     {

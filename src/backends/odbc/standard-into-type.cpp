@@ -110,6 +110,10 @@ void odbc_standard_into_type_backend::define_by_pos(
         odbcType_ = SQL_C_TYPE_TIMESTAMP;
         size = sizeof(TIMESTAMP_STRUCT);
         break;
+    case x_odbcnumericstruct:
+        odbcType_ = SQL_C_NUMERIC;
+        size = sizeof(SQL_NUMERIC_STRUCT);
+        break;
     case x_rowid:
         odbcType_ = SQL_C_ULONG;
         size = sizeof(unsigned long);
@@ -139,6 +143,13 @@ void odbc_standard_into_type_backend::define_by_pos(
         throw odbc_soci_error(SQL_HANDLE_STMT, statement_.hstmt_,
                             "into type pre_fetch");
     }
+
+    //if (type_ == x_odbcnumericstruct)
+    //{
+    //    rc = SQLSetDescField(statement_.hstmt_, static_cast<SQLUSMALLINT>(position_), SQL_DESC_TYPE, (VOID*)SQL_C_NUMERIC, 0);
+    //    rc = SQLSetDescField(statement_.hstmt_, static_cast<SQLUSMALLINT>(position_), SQL_DESC_PRECISION, (VOID*)16, 0);
+    //    rc = SQLSetDescField(statement_.hstmt_, static_cast<SQLUSMALLINT>(position_), SQL_DESC_SCALE, (VOID*)15, 0);
+    //}
 }
 
 void odbc_standard_into_type_backend::pre_fetch()

@@ -131,6 +131,7 @@ struct exchange_traits<double>
     enum { x_type = x_double };
 };
 
+
 template <>
 struct exchange_traits<std::string>
 {
@@ -165,6 +166,13 @@ struct exchange_traits<TIMESTAMP_STRUCT>
 {
     typedef basic_type_tag type_family;
     enum { x_type = x_odbctimestamp };
+};
+
+template <>
+struct exchange_traits<SQL_NUMERIC_STRUCT>
+{
+    typedef basic_type_tag type_family;
+    enum { x_type = x_odbcnumericstruct };
 };
 
 template <typename T>

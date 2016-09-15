@@ -291,6 +291,8 @@ odbc_session_backend::get_database_product()
         product_ = prod_sqlite;
     else if (strncmp(product_name, "DB2", 3) == 0)
         product_ = prod_db2;
+    else if (strcmp(product_name, "SQL Server") == 0)
+        product_ = prod_sybase;
     else
         product_ = prod_unknown;
 

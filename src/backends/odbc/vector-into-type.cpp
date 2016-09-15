@@ -167,6 +167,16 @@ void odbc_vector_into_type_backend::define_by_pos(
         break;
     }
 
+    case x_odbcnumericstruct:
+    {
+        odbcType_ = SQL_C_NUMERIC;
+        size = sizeof(SQL_NUMERIC_STRUCT);
+        std::vector<SQL_NUMERIC_STRUCT> *vp = static_cast<std::vector<SQL_NUMERIC_STRUCT> *>(data);
+        std::vector<SQL_NUMERIC_STRUCT> &v(*vp);
+        data = &v[0];
+        break;
+    }
+
     case x_statement: break; // not supported
     case x_rowid:     break; // not supported
     case x_blob:      break; // not supported
@@ -308,6 +318,14 @@ std::size_t odbc_vector_into_type_backend::size()
     {
         std::vector<TIMESTAMP_STRUCT> *v
             = static_cast<std::vector<TIMESTAMP_STRUCT> *>(data_);
+        sz = v->size();
+    }
+    break;
+
+    case x_odbcnumericstruct:
+    {
+        std::vector<SQL_NUMERIC_STRUCT> *v
+            = static_cast<std::vector<SQL_NUMERIC_STRUCT> *>(data_);
         sz = v->size();
     }
     break;

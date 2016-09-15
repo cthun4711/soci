@@ -29,7 +29,7 @@ using namespace soci::details;
 
 
 void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &size,
-    SQLSMALLINT &sqlType, SQLSMALLINT &cType, SQLLEN* ind, int &position_)
+    SQLSMALLINT &sqlType, SQLSMALLINT &cType, SQLLEN* ind, int &/*position_*/)
 {
     switch (type_)
     {    // simple cases
@@ -90,46 +90,6 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             std::vector<double> &v(*vp);
             data = &v[0];
             arraySize_ = v.size();
-
-            static bool bIsDB2 = statement_.session_.get_database_product() == odbc_session_backend::prod_db2;
-            if (bIsDB2)
-            {
-                mn_odbc_error_info err;
-                SQLSMALLINT sqlDataType;
-                SQLULEN colSize;
-                SQLSMALLINT decDigits;
-                SQLSMALLINT isNullable;
-
-                if (statement_.describe_param(position_, err, sqlDataType, colSize, decDigits, isNullable))
-                {
-                    if (sqlDataType == SQL_DECIMAL && decDigits > 0)
-                    {
-                        sqlType = SQL_VARCHAR;
-                        cType = SQL_C_CHAR;
-
-
-                        std::size_t maxSize = 257;
-                        std::size_t const vecSize = v.size();
-
-                        arraySize_ = vecSize;
-
-                        buf_ = new char[maxSize * vecSize];
-                        memset(buf_, 0, maxSize * vecSize);
-
-                        char *pos = buf_;
-                        for (std::size_t i = 0; i != vecSize; ++i)
-                        {
-                            ind[i] = SQL_NTS;
-
-                            snprintf(pos, maxSize-1, "%.*lf", decDigits, v[i]);
-                            pos += maxSize;
-                        }
-
-                        data = buf_;
-                        size = static_cast<SQLINTEGER>(maxSize);
-                    }
-                }
-            }
         }
         break;
 
@@ -252,6 +212,10 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
             for (std::size_t i = 0; i != vecSize; ++i)
             {
                 ind[i] = strlen(v[i].m_ptrCharData);
+                if (ind[i] == 0)
+                {
+                    ind[i] = SQL_NULL_DATA;
+                }
                 strncpy(pos, v[i].m_ptrCharData, ind[i]);
 				pos += (MNSociString::MNSOCI_SIZE - 1);
             }
@@ -283,6 +247,10 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
 			for (std::size_t i = 0; i != vecSize; ++i)
 			{
 				ind[i] = strlen(v[i].m_ptrCharData);
+                if (ind[i] == 0)
+                {
+                    ind[i] = SQL_NULL_DATA;
+                }
 				strncpy(pos, v[i].m_ptrCharData, ind[i]);
 				pos += (MNSociText::MNSOCI_SIZE - 1);
 			}
@@ -304,6 +272,18 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
         arraySize_ = v.size();
     }
     break;
+
+    case x_odbcnumericstruct:
+        {
+            sqlType = SQL_NUMERIC;
+            cType = SQL_C_NUMERIC;
+            size = sizeof(SQL_NUMERIC_STRUCT);
+            std::vector<SQL_NUMERIC_STRUCT> *vp = static_cast<std::vector<SQL_NUMERIC_STRUCT> *>(data);
+            std::vector<SQL_NUMERIC_STRUCT> &v(*vp);
+            data = &v[0];
+            arraySize_ = v.size();
+        }
+        break;
 
     case x_statement: break; // not supported
     case x_rowid:     break; // not supported
@@ -327,9 +307,45 @@ void odbc_vector_use_type_backend::bind_helper(int &position, void *data, exchan
 
     SQLSetStmtAttr(statement_.hstmt_, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER)arraySize_, 0);
 
-    SQLRETURN rc = SQLBindParameter(statement_.hstmt_, static_cast<SQLUSMALLINT>(position++),
-                                    SQL_PARAM_INPUT, cType, sqlType, size, 0,
-                                    static_cast<SQLPOINTER>(data), size, ind_);
+    //SQLRETURN rc = SQLBindParameter(statement_.hstmt_, static_cast<SQLUSMALLINT>(position++),
+    //                                SQL_PARAM_INPUT, cType, sqlType, size, 0,
+    //                                static_cast<SQLPOINTER>(data), size, ind_);
+    SQLRETURN rc = 0;
+
+    if (type_ != x_odbcnumericstruct)
+    {
+        rc = SQLBindParameter(statement_.hstmt_,
+            static_cast<SQLUSMALLINT>(position++),
+            SQL_PARAM_INPUT,
+            cType, sqlType, size, 0,
+            static_cast<SQLPOINTER>(data), size, ind_);
+    }
+    else
+    {
+        SQLLEN COLPREC = 36;
+        const SQLLEN COLSCALE = 14;
+
+        switch (statement_.session_.get_database_product())
+        {
+        case odbc_session_backend::prod_db2:
+            COLPREC = 31;
+            break;
+        case odbc_session_backend::prod_sybase:
+            COLPREC = 38;
+            break;
+        case odbc_session_backend::prod_mssql:
+        case odbc_session_backend::prod_oracle:
+        default:
+            //do nothing, 36, 14 is OK
+            break;
+        }
+
+        rc = SQLBindParameter(statement_.hstmt_,
+            static_cast<SQLUSMALLINT>(position++),
+            SQL_PARAM_INPUT,
+            cType, sqlType, COLPREC, COLSCALE,
+            static_cast<SQLPOINTER>(data), size, ind_);
+    }
 
     if (is_odbc_error(rc))
     {
@@ -437,6 +453,13 @@ std::size_t odbc_vector_use_type_backend::size()
     {
         std::vector<TIMESTAMP_STRUCT> *vp
             = static_cast<std::vector<TIMESTAMP_STRUCT> *>(data_);
+        sz = vp->size();
+    }
+    break;
+    case x_odbcnumericstruct:
+    {
+        std::vector<SQL_NUMERIC_STRUCT> *vp
+            = static_cast<std::vector<SQL_NUMERIC_STRUCT> *>(data_);
         sz = vp->size();
     }
     break;

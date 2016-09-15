@@ -297,6 +297,7 @@ struct odbc_session_backend : details::session_backend
       prod_postgresql,
       prod_sqlite,
       prod_db2,
+      prod_sybase,
       prod_unknown = -1
     };
 

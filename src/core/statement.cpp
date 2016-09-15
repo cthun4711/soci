@@ -345,7 +345,7 @@ int statement_impl::execute(int iFetchSize, mn_odbc_error_info& err_info, int iI
     int num = 0;
     if (iFetchSize != 0)
     {
-        num = fetchSize_;
+        num = (int)fetchSize_;
 
         pre_fetch();
 
@@ -363,11 +363,11 @@ int statement_impl::execute(int iFetchSize, mn_odbc_error_info& err_info, int iI
     {
         if (row_ == NULL)
         {
-            iIntoSize = intos_.size();
+            iIntoSize = (int)intos_.size();
         }
         else
         {
-            iIntoSize = row_->size();
+            iIntoSize = (int)row_->size();
         }
     }
 

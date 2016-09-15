@@ -62,13 +62,11 @@ standard_use_type::to_string()
         strVal = "x_mnsocistring:";
         strVal += ((MNSociString*)data_)->m_ptrCharData;
         break;
-        break;
     }
 	case x_mnsocitext:
 		{
 			strVal = "x_mnsocitext:";
 			strVal += ((MNSociText*)data_)->m_ptrCharData;
-			break;
 			break;
 		}
     case x_short:
@@ -120,6 +118,11 @@ standard_use_type::to_string()
         sprintf(msg, "%d.%d.%d %02d:%02d:%02d", myTime.day, myTime.month, myTime.year, myTime.hour, myTime.minute, myTime.second);
         strVal = "x_odbctimestamp:";
         strVal += msg;
+        break;
+    }
+    case x_odbcnumericstruct:
+    {
+        strVal += "x_odbcnumericstruct";
         break;
     }
     }

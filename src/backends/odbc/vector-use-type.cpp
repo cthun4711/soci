@@ -341,10 +341,22 @@ void odbc_vector_use_type_backend::bind_helper(int &position, void *data, exchan
         }
 
         rc = SQLBindParameter(statement_.hstmt_,
-            static_cast<SQLUSMALLINT>(position++),
+            static_cast<SQLUSMALLINT>(position/*++*/),
             SQL_PARAM_INPUT,
             cType, sqlType, COLPREC, COLSCALE,
             static_cast<SQLPOINTER>(data), size, ind_);
+
+        //////////////////
+        {
+            SQLHDESC   hdesc = NULL;
+            rc = SQLGetStmtAttr(statement_.hstmt_, SQL_ATTR_APP_PARAM_DESC, &hdesc, 0, NULL);
+            rc = SQLSetDescField(hdesc, position, SQL_DESC_TYPE, (SQLPOINTER)SQL_C_NUMERIC, 0);
+            rc = SQLSetDescField(hdesc, position, SQL_DESC_PRECISION, (SQLPOINTER)COLPREC, 0);
+            rc = SQLSetDescField(hdesc, position, SQL_DESC_SCALE, (SQLPOINTER)COLSCALE, 0);
+            rc = SQLSetDescField(hdesc, position, SQL_DESC_DATA_PTR, static_cast<SQLPOINTER>(data), 0);
+        }
+        ++position;
+        //////////////////
     }
 
     if (is_odbc_error(rc))

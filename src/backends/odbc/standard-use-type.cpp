@@ -238,6 +238,15 @@ void odbc_standard_use_type_backend::pre_use()
             SQL_PARAM_INPUT,
             cType, sqlType, COLPREC, COLSCALE,
             sqlData, 0, indHolder_);
+
+        {
+            SQLHDESC   hdesc = NULL;
+            rc = SQLGetStmtAttr(statement_.hstmt_, SQL_ATTR_APP_PARAM_DESC, &hdesc, 0, NULL);
+            rc = SQLSetDescField(hdesc, position_, SQL_DESC_TYPE, (SQLPOINTER)SQL_C_NUMERIC, 0);
+            rc = SQLSetDescField(hdesc, position_, SQL_DESC_PRECISION, (SQLPOINTER)COLPREC, 0);
+            rc = SQLSetDescField(hdesc, position_, SQL_DESC_SCALE, (SQLPOINTER)COLSCALE, 0);
+            rc = SQLSetDescField(hdesc, position_, SQL_DESC_DATA_PTR, static_cast<SQLPOINTER>(sqlData), 0);
+        }
     }
 
     if( type_ == x_blob )

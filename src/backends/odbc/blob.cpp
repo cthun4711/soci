@@ -83,7 +83,7 @@ std::unique_ptr<std::string> odbc_blob_backend::read(mn_odbc_error_info& err_inf
                 break;
         }
 
-        delete buf;
+        delete [] buf;
         buf = nullptr;
 
         if( is_odbc_error(rc) )

@@ -347,6 +347,7 @@ void odbc_vector_use_type_backend::bind_helper(int &position, void *data, exchan
             static_cast<SQLPOINTER>(data), size, ind_);
 
         //////////////////
+        if (statement_.session_.get_database_product() != odbc_session_backend::prod_db2)
         {
             SQLHDESC   hdesc = NULL;
             rc = SQLGetStmtAttr(statement_.hstmt_, SQL_ATTR_APP_PARAM_DESC, &hdesc, 0, NULL);

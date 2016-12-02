@@ -97,14 +97,14 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         cType = SQL_C_CHAR;
 		size = ((MNSociString*)data_)->getSize();
         buf_ = &(((MNSociString*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
-        *indHolder_ = ((MNSociString*)data_)->m_iIndicator == 0 ? SQL_NULL_DATA : SQL_NTS;
+        *indHolder_ = (((MNSociString*)data_)->m_iIndicator == 0 || ((MNSociString*)data_)->m_iIndicator == SQL_NULL_DATA) ? SQL_NULL_DATA : SQL_NTS;
         break;
 	case x_mnsocitext:
 		sqlType = SQL_VARCHAR;
 		cType = SQL_C_CHAR;
 		size = ((MNSociText*)data_)->getSize();
 		buf_ = &(((MNSociText*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
-        *indHolder_ = ((MNSociText*)data_)->m_iIndicator == 0 ? SQL_NULL_DATA : SQL_NTS;
+        *indHolder_ = (((MNSociText*)data_)->m_iIndicator == 0 || ((MNSociText*)data_)->m_iIndicator == SQL_NULL_DATA) ? SQL_NULL_DATA : SQL_NTS;
 		break;
     case x_stdstring:
     {

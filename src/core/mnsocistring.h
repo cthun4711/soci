@@ -23,16 +23,30 @@ class MNSociString
     MNSociString() :m_iSize(MNSOCI_SIZE) { m_ptrCharData = new char[m_iSize]; m_ptrCharData[0] = '\0'; m_iIndicator = SQL_NULL_DATA; }
     MNSociString(const char* ptrChar) :m_iSize(MNSOCI_SIZE) { m_ptrCharData = new char[m_iSize]; strcpy(m_ptrCharData, ptrChar); (ptrChar == nullptr || strlen(ptrChar) == 0) ? m_iIndicator = SQL_NULL_DATA : m_iIndicator = strlen(ptrChar); }
 	MNSociString(const MNSociString& obj):m_iSize(obj.m_iSize) { m_ptrCharData = new char[m_iSize]; *this = obj; }
+    MNSociString(MNSociString&& obj) :m_iSize(obj.m_iSize), m_iIndicator(obj.m_iIndicator) { m_ptrCharData = obj.m_ptrCharData; obj.m_ptrCharData = nullptr; }
     virtual ~MNSociString() 
     {
-        if (m_ptrCharData != NULL)  
+        if (m_ptrCharData != nullptr)  
         { 
             delete [] m_ptrCharData; 
-            m_ptrCharData = NULL; 
+            m_ptrCharData = nullptr;
         }
     }
 
 	MNSociString& operator = (const MNSociString& obj)  { strcpy(m_ptrCharData, obj.m_ptrCharData); m_iIndicator = obj.m_iIndicator; m_iSize = obj.m_iSize; return *this; }
+    MNSociString& operator = (MNSociString&& obj)  
+    {
+        if (m_ptrCharData != nullptr)
+        {
+            delete[] m_ptrCharData;
+            m_ptrCharData = nullptr;
+        }
+        m_ptrCharData = obj.m_ptrCharData; 
+        obj.m_ptrCharData = nullptr; 
+        m_iIndicator = obj.m_iIndicator; 
+        m_iSize = obj.m_iSize; 
+        return *this;
+    }
     MNSociString& operator = (char* ptrChar)            { strcpy(m_ptrCharData, ptrChar); (ptrChar == nullptr || strlen(ptrChar) == 0) ? m_iIndicator = SQL_NULL_DATA : m_iIndicator = strlen(ptrChar); return *this; }
     MNSociString& operator = (const char* ptrChar)      { strcpy(m_ptrCharData, ptrChar); (ptrChar == nullptr || strlen(ptrChar) == 0) ? m_iIndicator = SQL_NULL_DATA : m_iIndicator = strlen(ptrChar); return *this; }
 
@@ -51,6 +65,7 @@ class MNSociText
 		MNSociText() :m_iSize(MNSOCI_SIZE) { m_ptrCharData = new char[m_iSize]; m_ptrCharData[0] = '\0'; m_iIndicator = SQL_NULL_DATA; }
         MNSociText(const char* ptrChar) :m_iSize(MNSOCI_SIZE) { m_ptrCharData = new char[m_iSize]; strcpy(m_ptrCharData, ptrChar); (ptrChar == nullptr || strlen(ptrChar) == 0) ? m_iIndicator = SQL_NULL_DATA : m_iIndicator = strlen(ptrChar); }
 		MNSociText(const MNSociText& obj):m_iSize(obj.m_iSize) { m_ptrCharData = new char[m_iSize]; *this = obj; }
+        MNSociText(MNSociText&& obj) :m_iSize(obj.m_iSize), m_iIndicator(obj.m_iIndicator) { m_ptrCharData = obj.m_ptrCharData; obj.m_ptrCharData = nullptr; }
 		virtual ~MNSociText()
 	    {
 		  if (m_ptrCharData != NULL)
@@ -60,7 +75,20 @@ class MNSociText
 		  }
 	   }
 
-		MNSociText& operator = (const MNSociText& obj)  { strcpy(m_ptrCharData, obj.m_ptrCharData); m_iIndicator = obj.m_iIndicator; m_iSize = obj.m_iSize; return *this; }
+		MNSociText& operator = (const MNSociText& obj)    { strcpy(m_ptrCharData, obj.m_ptrCharData); m_iIndicator = obj.m_iIndicator; m_iSize = obj.m_iSize; return *this; }
+        MNSociText& operator = (MNSociText&& obj)
+        {
+            if (m_ptrCharData != nullptr)
+            {
+                delete[] m_ptrCharData;
+                m_ptrCharData = nullptr;
+            }
+            m_ptrCharData = obj.m_ptrCharData;
+            obj.m_ptrCharData = nullptr;
+            m_iIndicator = obj.m_iIndicator;
+            m_iSize = obj.m_iSize;
+            return *this;
+        }
         MNSociText& operator = (char* ptrChar)            { strcpy(m_ptrCharData, ptrChar); (ptrChar == nullptr || strlen(ptrChar) == 0) ? m_iIndicator = SQL_NULL_DATA : m_iIndicator = strlen(ptrChar); return *this; }
         MNSociText& operator = (const char* ptrChar)      { strcpy(m_ptrCharData, ptrChar); (ptrChar == nullptr || strlen(ptrChar) == 0) ? m_iIndicator = SQL_NULL_DATA : m_iIndicator = strlen(ptrChar); return *this; }
 
@@ -75,9 +103,10 @@ class MNSociText
 class MNSociArrayString
 {
 public:
-	MNSociArrayString(int iArraySize, bool bIsDB2)
+    MNSociArrayString(int iArraySize, bool bIsDB2, bool bIsUsedForDoubleStorage)
 		:m_iSize(MNSociString::MNSOCI_SIZE),
-		 m_iArraySize(iArraySize)
+		 m_iArraySize(iArraySize),
+         m_bIsUsedForDoubleStorage(bIsUsedForDoubleStorage)
     { 
 		m_ptrArrayCharData = new char[m_iSize * iArraySize];
         m_ptrArrayCharData[0] = '\0'; 
@@ -121,6 +150,8 @@ public:
     void        reset() { m_iCurrentArrayInsertPosition = 0; }
 	const int&   getStringSize() const { return m_iSize;  }
 
+    bool        isUsedForDoubleStorage() { return m_bIsUsedForDoubleStorage; }
+
 private:
     int     m_iArraySize;
     //starts with 0
@@ -130,6 +161,7 @@ private:
 
     std::vector<SQLLEN> m_vecIndicators;
 	int     m_iSize;
+    bool    m_bIsUsedForDoubleStorage;
 };
 
 class MNSociArrayText 

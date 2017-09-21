@@ -168,10 +168,17 @@ void odbc_vector_use_type_backend::prepare_for_bind(void *&data, SQLUINTEGER &si
 
     case x_mnsociarraystring:
     {
-        sqlType = SQL_CHAR;
         cType = SQL_C_CHAR;
-        
+       
         MNSociArrayString *v = static_cast<MNSociArrayString *>(data);
+        if (v->isUsedForDoubleStorage())
+        {
+            sqlType = SQL_DOUBLE;
+        }
+        else
+        {
+            sqlType = SQL_CHAR;
+        }
         size = v->getStringSize();
         data = v->getArrayCharData();
         ind = v->getArrayIndicators();

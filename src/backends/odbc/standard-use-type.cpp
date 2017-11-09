@@ -93,8 +93,15 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         *indHolder_ = strlen(buf_) == 0 ? SQL_NULL_DATA : SQL_NTS;
         break;
     case x_mnsocistring:
-        sqlType = SQL_VARCHAR;
         cType = SQL_C_CHAR;
+        if (((MNSociString*)data_)->isUsedForDoubleStorage())
+        {
+            sqlType = SQL_DOUBLE;
+        }
+        else
+        {
+            sqlType = SQL_VARCHAR;
+        }
 		size = ((MNSociString*)data_)->getSize();
         buf_ = &(((MNSociString*)data_)->m_ptrCharData[0]); //use the char* inside the odbc call!!
         *indHolder_ = (((MNSociString*)data_)->m_iIndicator == 0 || ((MNSociString*)data_)->m_iIndicator == SQL_NULL_DATA) ? SQL_NULL_DATA : SQL_NTS;

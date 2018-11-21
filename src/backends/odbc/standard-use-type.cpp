@@ -167,7 +167,6 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         cType = SQL_C_BINARY;
         sqlType = SQL_LONGVARBINARY;
         size = 0x7FFFFFFF; // TODO determinate configured BLOB size at run-time
-        if( indHolder_ ) *indHolder_ = 0;
 
         blob *b = static_cast<blob *>(data_);
 
@@ -176,7 +175,9 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
 
         bbe->statement_ = &statement_;
         bbe->position_ = position_;
-        bbe->chunksize_ = 0;
+
+        if( indHolder_ )
+            *indHolder_ = (bbe->srcdata_ != nullptr) ? SQL_LEN_DATA_AT_EXEC(0) : SQL_NULL_DATA;
 
         return (void*)bbe;
     }
@@ -254,12 +255,6 @@ void odbc_standard_use_type_backend::pre_use()
             rc = SQLSetDescField(hdesc, position_, SQL_DESC_SCALE, (SQLPOINTER)COLSCALE, 0);
             rc = SQLSetDescField(hdesc, position_, SQL_DESC_DATA_PTR, static_cast<SQLPOINTER>(sqlData), 0);
         }
-    }
-
-    if( type_ == x_blob )
-    {
-        if( indHolder_ )
-            *indHolder_ = SQL_LEN_DATA_AT_EXEC(0);
     }
 
     if (is_odbc_error(rc))

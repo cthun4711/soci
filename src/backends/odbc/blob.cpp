@@ -15,7 +15,6 @@ using namespace soci::details;
 
 odbc_blob_backend::odbc_blob_backend(odbc_session_backend &session)
     : session_(session)
-    , chunksize_(0)
     , srcdata_(nullptr)
     , srcsize_(0)
 {
@@ -76,8 +75,11 @@ std::unique_ptr<std::string> odbc_blob_backend::read(mn_odbc_error_info& err_inf
         while (((rc = SQLGetData(hstmt, colnum, SQL_C_BINARY, buf, BUFSIZE, &ind)) == SQL_SUCCESS)
             || rc == SQL_SUCCESS_WITH_INFO)
         {
-            const size_t bytes = std::min<SQLINTEGER>(BUFSIZE, ind);
-            retObj->append(buf, bytes);
+            if( ind != SQL_NULL_DATA )
+            {
+                const size_t bytes = (size_t)std::min<SQLLEN>(BUFSIZE, ind);
+                retObj->append(buf, bytes);
+            }
 
             if (rc == SQL_SUCCESS)
                 break;
@@ -111,21 +113,23 @@ std::unique_ptr<std::string> odbc_blob_backend::read(mn_odbc_error_info& err_inf
 void odbc_blob_backend::set_data_source(
     const char* src, const size_t& srcsz)
 {
-    srcdata_= src;
-    srcsize_ =srcsz;
+    srcdata_ = src;
+    srcsize_ = (src != nullptr) ? srcsz : 0;
 }
 
 SQLRETURN odbc_blob_backend::upload(mn_odbc_error_info& err_info)
 {
+    const size_t MAX_CHUNK_LENGTH = odbc_max_buffer_length;
+
     SQLRETURN rc = SQL_SUCCESS;
-    if( srcdata_ && srcsize_ > 0 )
+    if( srcdata_ && srcsize_ >= 0 )
     {
         SQLHSTMT hstmt = statement_->hstmt_;
-        const SQLLEN CHUNKSIZE = chunksize_ > 0 ? chunksize_ : srcsize_;
-        const char* endp = srcdata_ + srcsize_;
-        for(const char* p=srcdata_ ; p<endp ; p+=CHUNKSIZE)
+        size_t pos = 0;
+        do
         {
-            rc = SQLPutData( hstmt, (SQLPOINTER)p, CHUNKSIZE);
+            SQLLEN len = (SQLLEN)std::min<size_t>(srcsize_-pos, MAX_CHUNK_LENGTH);
+            rc = SQLPutData( hstmt, (SQLPOINTER)(srcdata_+pos), len);
             if( is_odbc_error(rc) )
             {
                 odbc_soci_error myErr(SQL_HANDLE_STMT, hstmt, "uploading BLOB");
@@ -136,7 +140,8 @@ SQLRETURN odbc_blob_backend::upload(mn_odbc_error_info& err_info)
                 err_info.odbc_func_returnval_ = rc;
                 break;
             }
-        }
+            pos += len;
+        } while( pos < srcsize_ );
     }
 
     return rc;

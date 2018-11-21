@@ -257,7 +257,6 @@ struct odbc_blob_backend : details::blob_backend
     odbc_session_backend &session_;
     odbc_statement_backend* statement_;
     int position_;
-    SQLLEN chunksize_;
     const char* srcdata_;
     size_t srcsize_;
 };

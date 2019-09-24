@@ -85,14 +85,14 @@ standard_use_type::to_string()
     }
     case x_long_long:
     {
-        sprintf(msg, "%d", *(long long*)data_);
+        sprintf(msg, "%d", (int)*(long long*)data_);
         strVal = "x_long_long:";
         strVal += msg;
         break;
     }
     case x_unsigned_long_long:
     {
-        sprintf(msg, "%d", *(unsigned long long*)data_);
+        sprintf(msg, "%d", (int)*(unsigned long long*)data_);
         strVal = "x_unsigned_long_long:";
         strVal += msg;
         break;

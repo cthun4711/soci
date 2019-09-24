@@ -18,16 +18,6 @@
 #ifdef _MSC_VER
 #include <stdlib.h>
 
-// Define if you have the vsnprintf variants.
-#if _MSC_VER < 1500
-# define HAVE_VSNPRINTF 1
-# define vsnprintf _vsnprintf
-#endif
-
-// Define if you have the snprintf variants.
-#define HAVE_SNPRINTF 1
-#define snprintf _snprintf
-
 // Define if you have the strtoll and strtoull variants.
 #if _MSC_VER >= 1300
 # define HAVE_STRTOLL 1

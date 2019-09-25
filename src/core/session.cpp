@@ -7,10 +7,11 @@
 
 #define SOCI_SOURCE
 #include "session.h"
+#include "query_transformation.h"
 #include "connection-parameters.h"
 #include "connection-pool.h"
 #include "soci-backend.h"
-#include "query_transformation.h"
+
 
 #ifdef _MSC_VER
 #pragma warning(disable:4355)
@@ -235,11 +236,11 @@ std::string session::get_query() const
 }
 
 void session::set_query_transformation_(
-        std::auto_ptr<details::query_transformation_function> qtf)
+        std::unique_ptr<details::query_transformation_function> qtf)
 {
     if (isFromPool_)
     {
-        pool_->at(poolPosition_).set_query_transformation_(qtf);
+        pool_->at(poolPosition_).set_query_transformation_(std::move(qtf));
     }
     else
     {

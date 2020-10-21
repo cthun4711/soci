@@ -256,10 +256,12 @@ odbc_rowid_backend * odbc_session_backend::make_rowid_backend()
     return new odbc_rowid_backend(*this);
 }
 
+#if _MSC_VER > 1900
 odbc_blob_backend * odbc_session_backend::make_blob_backend()
 {
     return new odbc_blob_backend(*this);
 }
+#endif
 
 odbc_session_backend::database_product
 odbc_session_backend::get_database_product()

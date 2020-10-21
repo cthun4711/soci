@@ -101,7 +101,9 @@ odbc_statement_backend::execute(int iFetchSize, mn_odbc_error_info& err_info, in
     SQLRETURN rc = SQLExecute(hstmt_);
     if( rc == SQL_NEED_DATA )
     {
+#if _MSC_VER > 1900
         rc = upload_blobs(err_info);
+#endif
     }
 
     if (is_odbc_error(rc))
@@ -222,6 +224,7 @@ odbc_statement_backend::fetch(int number, mn_odbc_error_info& err_info)
     return (int)numRowsFetched_;
 }
 
+#if _MSC_VER > 1900
 SQLRETURN
 odbc_statement_backend::upload_blobs(mn_odbc_error_info& err_info)
 {
@@ -240,6 +243,7 @@ odbc_statement_backend::upload_blobs(mn_odbc_error_info& err_info)
 
     return rc;
 }
+#endif
 
 long long odbc_statement_backend::get_affected_rows()
 {

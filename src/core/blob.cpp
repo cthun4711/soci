@@ -13,6 +13,7 @@
 
 using namespace soci;
 
+#if _MSC_VER > 1900
 blob::blob(session & s)
 {
     backEnd_ = s.make_blob_backend();
@@ -63,3 +64,4 @@ void blob::set_data_source(const std::string& src)
 {
     set_data_source( src.data(), src.length());
 }
+#endif

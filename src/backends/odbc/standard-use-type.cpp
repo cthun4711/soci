@@ -155,7 +155,7 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         size = sizeof(SQL_NUMERIC_STRUCT);
         break;
     }
-
+#if _MSC_VER > 1900
     case x_blob:
     {
         cType = SQL_C_BINARY;
@@ -176,6 +176,7 @@ void* odbc_standard_use_type_backend::prepare_for_bind(
         return (void*)bbe;
     }
     break;
+#endif
     case x_statement:
     case x_rowid:
         // Unsupported data types.

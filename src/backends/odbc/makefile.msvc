@@ -1,7 +1,7 @@
 # The following variable is specific to this backend and its correct
 # values might depend on your environment - feel free to set it accordingly.
 
-ODBCINCLUDEDIR="C:\Program Files\Microsoft Platform SDK\Include"
+ODBCINCLUDEDIR="C:\Program Files (x86)\Windows Kits\8.1\Include"
 
 # The rest of the Makefile is indepentent of the target environment.
 

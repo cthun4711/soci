@@ -42,7 +42,9 @@ public:
     // TBD return std::unique_ptr<std::vector<char>>
     // or even std::pair<std::unique_ptr<char>, size_t>
     // instead of std::unique_ptr<std::string>?
+#if _MSC_VER > 1900
     std::unique_ptr<std::string> read(mn_odbc_error_info& err_info);
+#endif
     void set_data_source(const char* src, const size_t& srcsz);
     void set_data_source(const std::string& src);
 

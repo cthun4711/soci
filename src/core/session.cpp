@@ -235,6 +235,7 @@ std::string session::get_query() const
     }
 }
 
+#if _MSC_VER > 1900
 void session::set_query_transformation_(
         std::unique_ptr<details::query_transformation_function> qtf)
 {
@@ -248,6 +249,7 @@ void session::set_query_transformation_(
         query_transformation_= qtf.release();
     }
 }
+#endif
 
 void session::set_log_stream(std::ostream * s)
 {
@@ -386,9 +388,11 @@ rowid_backend * session::make_rowid_backend()
     return backEnd_->make_rowid_backend();
 }
 
+#if _MSC_VER > 1900
 blob_backend * session::make_blob_backend()
 {
     ensureConnected(backEnd_);
 
     return backEnd_->make_blob_backend();
 }
+#endif

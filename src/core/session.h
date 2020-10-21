@@ -40,8 +40,9 @@ class SOCI_DECL session
 {
 private:
 
+#if _MSC_VER > 1900
     void set_query_transformation_(std::unique_ptr<details::query_transformation_function> qtf);
-
+#endif
 public:
     session();
     explicit session(connection_parameters const & parameters);

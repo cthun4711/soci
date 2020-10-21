@@ -16,6 +16,7 @@
 namespace soci
 {
 
+#if _MSC_VER > 1900
 //
 // rowset iterator of input category.
 //
@@ -238,7 +239,7 @@ private:
     details::rowset_impl<T>* pimpl_;
 
 }; // class rowset
-
+#endif
 } // namespace soci
 
 #endif // SOCI_ROWSET_H_INCLUDED

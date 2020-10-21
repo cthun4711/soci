@@ -208,6 +208,7 @@ public:
 
 // polymorphic blob backend
 
+#if _MSC_VER > 1900
 class blob_backend
 {
 public:
@@ -230,7 +231,7 @@ private:
     blob_backend(blob_backend const&);
     blob_backend& operator=(blob_backend const&);
 };
-
+#endif
 // polymorphic session backend
 
 class session_backend
@@ -262,7 +263,9 @@ public:
 
     virtual statement_backend* make_statement_backend() = 0;
     virtual rowid_backend* make_rowid_backend() = 0;
+#if _MSC_VER > 1900
     virtual blob_backend* make_blob_backend() = 0;
+#endif
 
 private:
     // noncopyable

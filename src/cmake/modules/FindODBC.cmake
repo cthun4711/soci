@@ -24,6 +24,7 @@ find_path(ODBC_INCLUDE_DIR sql.h
   /usr/local/include
   /usr/local/include/odbc
   /usr/local/odbc/include
+  "C:/Program Files (x86)/Windows Kits/8.1/include/um"
   "C:/Program Files (x86)/Windows Kits/8.0/include/um"
   "C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A/Include"
   "C:/Program Files/ODBC/include"
@@ -41,6 +42,7 @@ find_library(ODBC_LIBRARY
   /usr/local/lib
   /usr/local/lib/odbc
   /usr/local/odbc/lib
+  "C:/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x86"
   "C:/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/x86/"
   "C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A/Lib"
   "C:/Program Files/ODBC/lib"

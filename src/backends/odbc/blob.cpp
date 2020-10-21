@@ -12,6 +12,7 @@
 using namespace soci;
 using namespace soci::details;
 
+#if _MSC_VER > 1900
 
 odbc_blob_backend::odbc_blob_backend(odbc_session_backend &session)
     : session_(session)
@@ -146,3 +147,4 @@ SQLRETURN odbc_blob_backend::upload(mn_odbc_error_info& err_info)
 
     return rc;
 }
+#endif

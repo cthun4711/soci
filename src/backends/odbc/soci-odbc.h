@@ -197,7 +197,9 @@ struct odbc_statement_backend : details::statement_backend
 
     virtual int execute(int iFetchSize, mn_odbc_error_info& err_info, int iIntoSize = -1);
     virtual int fetch(int number, mn_odbc_error_info& err_info);
+#if _MSC_VER > 1900
     SQLRETURN upload_blobs(mn_odbc_error_info& err_info);
+#endif
 
     virtual long long get_affected_rows();
     virtual int get_number_of_rows();
@@ -236,6 +238,7 @@ struct odbc_rowid_backend : details::rowid_backend
     ~odbc_rowid_backend();
 };
 
+#if _MSC_VER > 1900
 struct odbc_blob_backend : details::blob_backend
 {
     odbc_blob_backend(odbc_session_backend &session);
@@ -260,6 +263,7 @@ struct odbc_blob_backend : details::blob_backend
     const char* srcdata_;
     size_t srcsize_;
 };
+#endif
 
 struct odbc_session_backend : details::session_backend
 {
@@ -284,7 +288,9 @@ struct odbc_session_backend : details::session_backend
 
     virtual odbc_statement_backend * make_statement_backend();
     virtual odbc_rowid_backend * make_rowid_backend();
+#if _MSC_VER > 1900
     virtual odbc_blob_backend * make_blob_backend();
+#endif
 
     enum database_product
     {
